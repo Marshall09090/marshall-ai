@@ -51,4 +51,16 @@ public class MarketStepDefinitions {
         assertNotNull(marketQuote.price());
         assertTrue(marketQuote.price().signum() > 0);
     }
+    @Then("the market quote price should be greater than zero")
+    public void marketQuotePriceShouldBeGreaterThanZero() {
+        assertNotNull(marketQuote);
+        assertNotNull(marketQuote.price());
+        assertTrue(marketQuote.price().signum() > 0);
+    }
+
+    @Then("the market quote should contain a timestamp")
+    public void marketQuoteShouldContainATimestamp() {
+        assertNotNull(marketQuote);
+        assertNotNull(marketQuote.timestamp());
+    }
 }
