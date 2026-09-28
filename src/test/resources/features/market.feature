@@ -13,3 +13,15 @@ Feature: Nexora market data
     And the market quote should contain a price
     And the market quote price should be greater than zero
     And the market quote should contain a timestamp
+
+  Scenario: Request historical candle data for a stock
+    Given the Nexora AI application is running
+    When I request historical market data for "AAPL" with asset type "STOCK" and timeframe "1m"
+    Then the historical market data should not be empty
+    And each candle should contain an open price
+    And each candle should contain a high price
+    And each candle should contain a low price
+    And each candle should contain a close price
+    And each candle should contain volume
+    And each candle should contain a timestamp
+    And each candle high price should be greater than or equal to its low price
