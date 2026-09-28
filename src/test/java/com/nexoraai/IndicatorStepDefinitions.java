@@ -26,6 +26,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal rsiResult;
     private BigDecimal macdResult;
     private BigDecimal macdSignalResult;
+    private BigDecimal macdHistogramResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -137,8 +138,7 @@ public class IndicatorStepDefinitions {
     @When("I calculate the MACD line with fast period {int} and slow period {int}")
     public void calculateMacdLine(
             int fastPeriod,
-            int slowPeriod
-    ) {
+            int slowPeriod) {
 
         macdResult = indicatorService.calculateMacd(
                 closingPrices,
@@ -195,6 +195,39 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "MACD signal line does not match expected result"
+        );
+    }
+
+    // =========================
+    // MACD HISTOGRAM
+    // =========================
+
+    @When("I calculate the MACD histogram")
+    public void calculateMacdHistogram() {
+
+        macdHistogramResult = indicatorService.calculateMacdHistogram(
+                closingPrices,
+                12,
+                26,
+                9
+        );
+    }
+
+    @Then("the MACD histogram should be {double}")
+    public void macdHistogramShouldBe(double expectedValue) {
+
+        assertNotNull(macdHistogramResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = macdHistogramResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "MACD histogram does not match expected result"
         );
     }
 }

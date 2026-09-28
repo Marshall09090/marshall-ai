@@ -119,3 +119,44 @@ Feature: Nexora technical indicators
       | 134.00 |
     When I calculate the MACD signal line
     Then the MACD signal line should be 7.00
+
+  Scenario: Calculate MACD histogram
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 101.00 |
+      | 102.00 |
+      | 103.00 |
+      | 104.00 |
+      | 105.00 |
+      | 106.00 |
+      | 107.00 |
+      | 108.00 |
+      | 109.00 |
+      | 110.00 |
+      | 111.00 |
+      | 112.00 |
+      | 113.00 |
+      | 114.00 |
+      | 115.00 |
+      | 116.00 |
+      | 117.00 |
+      | 118.00 |
+      | 119.00 |
+      | 120.00 |
+      | 121.00 |
+      | 122.00 |
+      | 123.00 |
+      | 124.00 |
+      | 125.00 |
+      | 126.00 |
+      | 127.00 |
+      | 128.00 |
+      | 129.00 |
+      | 130.00 |
+      | 131.00 |
+      | 132.00 |
+      | 133.00 |
+      | 134.00 |
+    When I calculate the MACD histogram
+    Then the MACD histogram should be 0.00

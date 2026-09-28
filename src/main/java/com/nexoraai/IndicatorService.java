@@ -17,6 +17,7 @@ public class IndicatorService {
      * using the most recent prices for the requested period.
      */
     public BigDecimal calculateSma(List<BigDecimal> prices, int period) {
+
         validatePricesAndPeriod(prices, period, "SMA");
 
         int startIndex = prices.size() - period;
@@ -37,6 +38,7 @@ public class IndicatorService {
      * Calculates the Exponential Moving Average (EMA).
      */
     public BigDecimal calculateEma(List<BigDecimal> prices, int period) {
+
         validatePricesAndPeriod(prices, period, "EMA");
 
         BigDecimal multiplier = BigDecimal.valueOf(2)
@@ -49,6 +51,7 @@ public class IndicatorService {
         BigDecimal ema = calculateInitialSma(prices, period);
 
         for (int i = period; i < prices.size(); i++) {
+
             BigDecimal price = prices.get(i);
 
             ema = price
@@ -64,11 +67,6 @@ public class IndicatorService {
      * Calculates the Relative Strength Index (RSI).
      */
     public BigDecimal calculateRsi(List<BigDecimal> prices, int period) {
-        if (prices == null || prices.size() < period + 1) {
-            throw new IllegalArgumentException(
-                    "Not enough prices to calculate RSI"
-            );
-        }
 
         if (period <= 0) {
             throw new IllegalArgumentException(
@@ -76,16 +74,23 @@ public class IndicatorService {
             );
         }
 
+        if (prices == null || prices.size() < period + 1) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate RSI"
+            );
+        }
+
         BigDecimal gains = BigDecimal.ZERO;
         BigDecimal losses = BigDecimal.ZERO;
 
         for (int i = 1; i <= period; i++) {
+
             BigDecimal change = prices.get(i)
                     .subtract(prices.get(i - 1));
 
             if (change.signum() > 0) {
                 gains = gains.add(change);
-            } else {
+            } else if (change.signum() < 0) {
                 losses = losses.add(change.abs());
             }
         }
@@ -103,6 +108,7 @@ public class IndicatorService {
         );
 
         for (int i = period + 1; i < prices.size(); i++) {
+
             BigDecimal change = prices.get(i)
                     .subtract(prices.get(i - 1));
 
@@ -160,17 +166,24 @@ public class IndicatorService {
     /**
      * Calculates the current MACD line.
      *
-     * MACD = fast EMA - slow EMA
+     * MACD = Fast EMA - Slow EMA
      */
     public BigDecimal calculateMacd(
             List<BigDecimal> prices,
             int fastPeriod,
             int slowPeriod) {
 
-        validateMacdPeriods(prices, fastPeriod, slowPeriod);
+        validateMacdPeriods(
+                prices,
+                fastPeriod,
+                slowPeriod
+        );
 
-        BigDecimal fastEma = calculateEma(prices, fastPeriod);
-        BigDecimal slowEma = calculateEma(prices, slowPeriod);
+        BigDecimal fastEma =
+                calculateEma(prices, fastPeriod);
+
+        BigDecimal slowEma =
+                calculateEma(prices, slowPeriod);
 
         return fastEma
                 .subtract(slowEma)
@@ -188,19 +201,20 @@ public class IndicatorService {
             int slowPeriod,
             int signalPeriod) {
 
-        validateMacdPeriods(prices, fastPeriod, slowPeriod);
-
-        if (signalPeriod <= 0) {
-            throw new IllegalArgumentException(
-                    "Signal period must be greater than zero"
-            );
-        }
-
-        List<BigDecimal> macdValues = buildMacdSeries(
+        validateMacdPeriods(
                 prices,
                 fastPeriod,
                 slowPeriod
         );
+
+        validateSignalPeriod(signalPeriod);
+
+        List<BigDecimal> macdValues =
+                buildMacdSeries(
+                        prices,
+                        fastPeriod,
+                        slowPeriod
+                );
 
         if (macdValues.size() < signalPeriod) {
             throw new IllegalArgumentException(
@@ -208,8 +222,55 @@ public class IndicatorService {
             );
         }
 
-        return calculateEma(macdValues, signalPeriod)
-                .setScale(SCALE, RoundingMode.HALF_UP);
+        return calculateEma(
+                macdValues,
+                signalPeriod
+        ).setScale(
+                SCALE,
+                RoundingMode.HALF_UP
+        );
+    }
+
+    /**
+     * Calculates the MACD Histogram.
+     *
+     * MACD Histogram = MACD Line - Signal Line
+     */
+    public BigDecimal calculateMacdHistogram(
+            List<BigDecimal> prices,
+            int fastPeriod,
+            int slowPeriod,
+            int signalPeriod) {
+
+        validateMacdPeriods(
+                prices,
+                fastPeriod,
+                slowPeriod
+        );
+
+        validateSignalPeriod(signalPeriod);
+
+        BigDecimal macdLine =
+                calculateMacd(
+                        prices,
+                        fastPeriod,
+                        slowPeriod
+                );
+
+        BigDecimal signalLine =
+                calculateMacdSignalLine(
+                        prices,
+                        fastPeriod,
+                        slowPeriod,
+                        signalPeriod
+                );
+
+        return macdLine
+                .subtract(signalLine)
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
     }
 
     /**
@@ -220,28 +281,47 @@ public class IndicatorService {
             int fastPeriod,
             int slowPeriod) {
 
-        List<BigDecimal> macdValues = new ArrayList<>();
+        List<BigDecimal> macdValues =
+                new ArrayList<>();
 
-        for (int end = slowPeriod; end <= prices.size(); end++) {
+        for (int end = slowPeriod;
+             end <= prices.size();
+             end++) {
 
             List<BigDecimal> priceWindow =
-                    new ArrayList<>(prices.subList(0, end));
+                    new ArrayList<>(
+                            prices.subList(0, end)
+                    );
 
             BigDecimal fastEma =
-                    calculateEma(priceWindow, fastPeriod);
+                    calculateEma(
+                            priceWindow,
+                            fastPeriod
+                    );
 
             BigDecimal slowEma =
-                    calculateEma(priceWindow, slowPeriod);
+                    calculateEma(
+                            priceWindow,
+                            slowPeriod
+                    );
 
-            macdValues.add(
-                    fastEma.subtract(slowEma)
-                            .setScale(SCALE, RoundingMode.HALF_UP)
-            );
+            BigDecimal macd =
+                    fastEma
+                            .subtract(slowEma)
+                            .setScale(
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            macdValues.add(macd);
         }
 
         return macdValues;
     }
 
+    /**
+     * Calculates the initial SMA used to seed an EMA.
+     */
     private BigDecimal calculateInitialSma(
             List<BigDecimal> prices,
             int period) {
@@ -249,7 +329,10 @@ public class IndicatorService {
         BigDecimal sum = prices
                 .subList(0, period)
                 .stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(
+                        BigDecimal.ZERO,
+                        BigDecimal::add
+                );
 
         return sum.divide(
                 BigDecimal.valueOf(period),
@@ -307,5 +390,15 @@ public class IndicatorService {
                 slowPeriod,
                 "MACD"
         );
+    }
+
+    private void validateSignalPeriod(
+            int signalPeriod) {
+
+        if (signalPeriod <= 0) {
+            throw new IllegalArgumentException(
+                    "Signal period must be greater than zero"
+            );
+        }
     }
 }
