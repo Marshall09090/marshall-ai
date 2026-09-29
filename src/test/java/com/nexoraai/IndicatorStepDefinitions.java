@@ -39,6 +39,8 @@ public class IndicatorStepDefinitions {
     private BigDecimal stochasticPercentKResult;
     private BigDecimal stochasticPercentDResult;
 
+    private BigDecimal adxResult;
+
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
 
@@ -442,6 +444,39 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Stochastic Oscillator percent D does not match expected result"
+        );
+    }
+
+    // =========================
+    // AVERAGE DIRECTIONAL INDEX (ADX)
+    // =========================
+
+    @When("I calculate the Average Directional Index with period {int}")
+    public void calculateAverageDirectionalIndex(int period) {
+
+        adxResult = indicatorService.calculateAdx(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                period
+        );
+    }
+
+    @Then("the Average Directional Index should be {double}")
+    public void averageDirectionalIndexShouldBe(double expectedValue) {
+
+        assertNotNull(adxResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = adxResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "ADX value does not match expected result"
         );
     }
 }

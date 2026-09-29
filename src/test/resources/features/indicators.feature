@@ -224,3 +224,19 @@ Feature: Nexora technical indicators
       | 122.00 | 106.00 | 119.00 |
     When I calculate the Stochastic Oscillator percent D with K period 5 and D period 3
     Then the Stochastic Oscillator percent D should be 86.03
+
+  Scenario: Calculate Average Directional Index
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 96.00  | 101.00 |
+      | 104.00 | 98.00  | 103.00 |
+      | 106.00 | 99.00  | 105.00 |
+      | 108.00 | 101.00 | 107.00 |
+      | 110.00 | 103.00 | 109.00 |
+      | 112.00 | 105.00 | 111.00 |
+      | 114.00 | 107.00 | 113.00 |
+      | 116.00 | 109.00 | 115.00 |
+      | 118.00 | 111.00 | 117.00 |
+    When I calculate the Average Directional Index with period 5
+    Then the Average Directional Index should be 100.00

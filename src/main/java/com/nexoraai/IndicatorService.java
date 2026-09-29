@@ -352,7 +352,8 @@ public class IndicatorService {
                 RoundingMode.HALF_UP
         );
     }
-// =========================
+
+    // =========================
     // MACD HISTOGRAM
     // =========================
 
@@ -676,6 +677,202 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 );
+    }
+
+    // =========================
+    // AVERAGE DIRECTIONAL INDEX (ADX)
+    // =========================
+
+    public BigDecimal calculateAdx(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    "ADX price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "ADX period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "ADX price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period + 1) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate ADX"
+            );
+        }
+
+        List<BigDecimal> dxValues = new ArrayList<>();
+
+        for (int endIndex = period;
+             endIndex < highPrices.size();
+             endIndex++) {
+
+            int startIndex = endIndex - period + 1;
+
+            BigDecimal trueRangeSum = BigDecimal.ZERO;
+            BigDecimal positiveDirectionalMovementSum = BigDecimal.ZERO;
+            BigDecimal negativeDirectionalMovementSum = BigDecimal.ZERO;
+
+            for (int i = startIndex;
+                 i <= endIndex;
+                 i++) {
+
+                BigDecimal currentHigh = highPrices.get(i);
+                BigDecimal currentLow = lowPrices.get(i);
+                BigDecimal previousHigh = highPrices.get(i - 1);
+                BigDecimal previousLow = lowPrices.get(i - 1);
+                BigDecimal previousClose = closingPrices.get(i - 1);
+
+                BigDecimal highLow =
+                        currentHigh.subtract(currentLow).abs();
+
+                BigDecimal highPreviousClose =
+                        currentHigh.subtract(previousClose).abs();
+
+                BigDecimal lowPreviousClose =
+                        currentLow.subtract(previousClose).abs();
+
+                BigDecimal trueRange =
+                        highLow.max(
+                                highPreviousClose.max(
+                                        lowPreviousClose
+                                )
+                        );
+
+                trueRangeSum =
+                        trueRangeSum.add(trueRange);
+
+                BigDecimal upwardMove =
+                        currentHigh.subtract(previousHigh);
+
+                BigDecimal downwardMove =
+                        previousLow.subtract(currentLow);
+
+                BigDecimal positiveDirectionalMovement =
+                        upwardMove.compareTo(downwardMove) > 0
+                                && upwardMove.compareTo(BigDecimal.ZERO) > 0
+                                ? upwardMove
+                                : BigDecimal.ZERO;
+
+                BigDecimal negativeDirectionalMovement =
+                        downwardMove.compareTo(upwardMove) > 0
+                                && downwardMove.compareTo(BigDecimal.ZERO) > 0
+                                ? downwardMove
+                                : BigDecimal.ZERO;
+
+                positiveDirectionalMovementSum =
+                        positiveDirectionalMovementSum.add(
+                                positiveDirectionalMovement
+                        );
+
+                negativeDirectionalMovementSum =
+                        negativeDirectionalMovementSum.add(
+                                negativeDirectionalMovement
+                        );
+            }
+
+            if (trueRangeSum.compareTo(BigDecimal.ZERO) == 0) {
+                dxValues.add(
+                        BigDecimal.ZERO.setScale(
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                );
+                continue;
+            }
+
+            BigDecimal positiveDi =
+                    positiveDirectionalMovementSum
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(
+                                    trueRangeSum,
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            BigDecimal negativeDi =
+                    negativeDirectionalMovementSum
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(
+                                    trueRangeSum,
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            BigDecimal directionalIndexSum =
+                    positiveDi.add(negativeDi);
+
+            BigDecimal dx;
+
+            if (directionalIndexSum.compareTo(BigDecimal.ZERO) == 0) {
+
+                dx = BigDecimal.ZERO.setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+
+            } else {
+
+                dx = positiveDi
+                        .subtract(negativeDi)
+                        .abs()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(
+                                directionalIndexSum,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+            }
+
+            dxValues.add(dx);
+        }
+
+        if (dxValues.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Not enough directional index values to calculate ADX"
+            );
+        }
+
+        int valuesToAverage =
+                Math.min(period, dxValues.size());
+
+        int startIndex =
+                dxValues.size() - valuesToAverage;
+
+        BigDecimal dxSum =
+                dxValues
+                        .subList(
+                                startIndex,
+                                dxValues.size()
+                        )
+                        .stream()
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
+
+        return dxSum.divide(
+                BigDecimal.valueOf(valuesToAverage),
+                SCALE,
+                RoundingMode.HALF_UP
+        );
     }
 
     // =========================
