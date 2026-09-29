@@ -45,6 +45,7 @@ public class IndicatorStepDefinitions {
 
     private BigDecimal cciResult;
     private BigDecimal williamsPercentRResult;
+    private BigDecimal rocResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -618,6 +619,37 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Williams Percent R value does not match expected result"
+        );
+    }
+
+    // =========================
+    // RATE OF CHANGE (ROC)
+    // =========================
+
+    @When("I calculate the Rate of Change with period {int}")
+    public void calculateRateOfChange(int period) {
+
+        rocResult = indicatorService.calculateRoc(
+                closingPrices,
+                period
+        );
+    }
+
+    @Then("the Rate of Change should be {double}")
+    public void rateOfChangeShouldBe(double expectedValue) {
+
+        assertNotNull(rocResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = rocResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "ROC value does not match expected result"
         );
     }
 }

@@ -286,3 +286,15 @@ Feature: Nexora technical indicators
       | 108.00 | 101.00 | 107.00 |
     When I calculate Williams Percent R with period 5
     Then Williams Percent R should be -7.69
+
+  Scenario: Calculate Rate of Change
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 102.00 |
+      | 104.00 |
+      | 106.00 |
+      | 108.00 |
+      | 110.00 |
+    When I calculate the Rate of Change with period 5
+    Then the Rate of Change should be 10.00

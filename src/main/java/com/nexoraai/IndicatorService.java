@@ -1238,6 +1238,60 @@ public class IndicatorService {
     }
 
     // =========================
+    // RATE OF CHANGE (ROC)
+    // =========================
+
+    public BigDecimal calculateRoc(
+            List<BigDecimal> prices,
+            int period) {
+
+        if (prices == null || prices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "ROC prices cannot be null or empty"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "ROC period must be greater than zero"
+            );
+        }
+
+        if (prices.size() < period + 1) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate ROC"
+            );
+        }
+
+        BigDecimal currentPrice =
+                prices.get(prices.size() - 1);
+
+        BigDecimal previousPrice =
+                prices.get(prices.size() - 1 - period);
+
+        if (previousPrice.compareTo(BigDecimal.ZERO) == 0) {
+            throw new IllegalArgumentException(
+                    "Previous price cannot be zero when calculating ROC"
+            );
+        }
+
+        return currentPrice
+                .subtract(previousPrice)
+                .divide(
+                        previousPrice,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .multiply(
+                        BigDecimal.valueOf(100)
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
