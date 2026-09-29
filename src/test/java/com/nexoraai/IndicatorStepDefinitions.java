@@ -37,6 +37,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal atrResult;
 
     private BigDecimal stochasticPercentKResult;
+    private BigDecimal stochasticPercentDResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -404,6 +405,43 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Stochastic Oscillator percent K does not match expected result"
+        );
+    }
+
+    // =========================
+    // STOCHASTIC OSCILLATOR %D
+    // =========================
+
+    @When("I calculate the Stochastic Oscillator percent D with K period {int} and D period {int}")
+    public void calculateStochasticOscillatorPercentD(
+            int kPeriod,
+            int dPeriod) {
+
+        stochasticPercentDResult =
+                indicatorService.calculateStochasticPercentD(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        kPeriod,
+                        dPeriod
+                );
+    }
+
+    @Then("the Stochastic Oscillator percent D should be {double}")
+    public void stochasticOscillatorPercentDShouldBe(double expectedValue) {
+
+        assertNotNull(stochasticPercentDResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = stochasticPercentDResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Stochastic Oscillator percent D does not match expected result"
         );
     }
 }

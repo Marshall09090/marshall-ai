@@ -253,6 +253,106 @@ public class IndicatorService {
     }
 
     // =========================
+    // STOCHASTIC OSCILLATOR %D
+    // =========================
+
+    public BigDecimal calculateStochasticPercentD(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int kPeriod,
+            int dPeriod) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    "Stochastic price lists cannot be null"
+            );
+        }
+
+        if (kPeriod <= 0 || dPeriod <= 0) {
+            throw new IllegalArgumentException(
+                    "Stochastic K and D periods must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "Stochastic price lists must have the same size"
+            );
+        }
+
+        int requiredPrices = kPeriod + dPeriod - 1;
+
+        if (highPrices.size() < requiredPrices) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Stochastic Oscillator percent D"
+            );
+        }
+
+        List<BigDecimal> percentKValues = new ArrayList<>();
+
+        int firstEndIndex = highPrices.size() - dPeriod;
+
+        for (int endIndex = firstEndIndex;
+             endIndex < highPrices.size();
+             endIndex++) {
+
+            int startIndex = endIndex - kPeriod + 1;
+
+            List<BigDecimal> highWindow =
+                    new ArrayList<>(
+                            highPrices.subList(
+                                    startIndex,
+                                    endIndex + 1
+                            )
+                    );
+
+            List<BigDecimal> lowWindow =
+                    new ArrayList<>(
+                            lowPrices.subList(
+                                    startIndex,
+                                    endIndex + 1
+                            )
+                    );
+
+            List<BigDecimal> closeWindow =
+                    new ArrayList<>(
+                            closingPrices.subList(
+                                    startIndex,
+                                    endIndex + 1
+                            )
+                    );
+
+            BigDecimal percentK =
+                    calculateStochasticPercentK(
+                            highWindow,
+                            lowWindow,
+                            closeWindow,
+                            kPeriod
+                    );
+
+            percentKValues.add(percentK);
+        }
+
+        BigDecimal sum =
+                percentKValues.stream()
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
+
+        return sum.divide(
+                BigDecimal.valueOf(dPeriod),
+                SCALE,
+                RoundingMode.HALF_UP
+        );
+    }
+// =========================
     // MACD HISTOGRAM
     // =========================
 

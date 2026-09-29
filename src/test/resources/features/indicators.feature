@@ -211,3 +211,16 @@ Feature: Nexora technical indicators
       | 118.00 | 104.00 | 116.00 |
     When I calculate the Stochastic Oscillator percent K with period 5
     Then the Stochastic Oscillator percent K should be 88.89
+
+  Scenario: Calculate Stochastic Oscillator percent D
+    Given the following market prices:
+      | high   | low    | close  |
+      | 110.00 | 100.00 | 105.00 |
+      | 112.00 | 101.00 | 108.00 |
+      | 114.00 | 102.00 | 110.00 |
+      | 116.00 | 103.00 | 113.00 |
+      | 118.00 | 104.00 | 116.00 |
+      | 120.00 | 105.00 | 117.00 |
+      | 122.00 | 106.00 | 119.00 |
+    When I calculate the Stochastic Oscillator percent D with K period 5 and D period 3
+    Then the Stochastic Oscillator percent D should be 86.03
