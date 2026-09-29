@@ -689,34 +689,13 @@ public class IndicatorService {
             List<BigDecimal> closingPrices,
             int period) {
 
-        if (highPrices == null
-                || lowPrices == null
-                || closingPrices == null) {
-
-            throw new IllegalArgumentException(
-                    "ADX price lists cannot be null"
-            );
-        }
-
-        if (period <= 0) {
-            throw new IllegalArgumentException(
-                    "ADX period must be greater than zero"
-            );
-        }
-
-        if (highPrices.size() != lowPrices.size()
-                || highPrices.size() != closingPrices.size()) {
-
-            throw new IllegalArgumentException(
-                    "ADX price lists must have the same size"
-            );
-        }
-
-        if (highPrices.size() < period + 1) {
-            throw new IllegalArgumentException(
-                    "Not enough prices to calculate ADX"
-            );
-        }
+        validateDirectionalPrices(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                period,
+                "ADX"
+        );
 
         List<BigDecimal> dxValues = new ArrayList<>();
 
@@ -876,6 +855,174 @@ public class IndicatorService {
     }
 
     // =========================
+    // POSITIVE DIRECTIONAL INDICATOR (+DI)
+    // =========================
+
+    public BigDecimal calculatePositiveDi(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        validateDirectionalPrices(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                period,
+                "Positive Directional Indicator"
+        );
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal trueRangeSum = BigDecimal.ZERO;
+        BigDecimal positiveDirectionalMovementSum = BigDecimal.ZERO;
+
+        for (int i = startIndex;
+             i < highPrices.size();
+             i++) {
+
+            BigDecimal currentHigh = highPrices.get(i);
+            BigDecimal currentLow = lowPrices.get(i);
+            BigDecimal previousHigh = highPrices.get(i - 1);
+            BigDecimal previousLow = lowPrices.get(i - 1);
+            BigDecimal previousClose = closingPrices.get(i - 1);
+
+            BigDecimal highLow =
+                    currentHigh.subtract(currentLow).abs();
+
+            BigDecimal highPreviousClose =
+                    currentHigh.subtract(previousClose).abs();
+
+            BigDecimal lowPreviousClose =
+                    currentLow.subtract(previousClose).abs();
+
+            BigDecimal trueRange =
+                    highLow.max(
+                            highPreviousClose.max(
+                                    lowPreviousClose
+                            )
+                    );
+
+            trueRangeSum =
+                    trueRangeSum.add(trueRange);
+
+            BigDecimal upwardMove =
+                    currentHigh.subtract(previousHigh);
+
+            BigDecimal downwardMove =
+                    previousLow.subtract(currentLow);
+
+            if (upwardMove.compareTo(downwardMove) > 0
+                    && upwardMove.compareTo(BigDecimal.ZERO) > 0) {
+
+                positiveDirectionalMovementSum =
+                        positiveDirectionalMovementSum.add(
+                                upwardMove
+                        );
+            }
+        }
+
+        if (trueRangeSum.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        return positiveDirectionalMovementSum
+                .multiply(BigDecimal.valueOf(100))
+                .divide(
+                        trueRangeSum,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
+    // NEGATIVE DIRECTIONAL INDICATOR (-DI)
+    // =========================
+
+    public BigDecimal calculateNegativeDi(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        validateDirectionalPrices(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                period,
+                "Negative Directional Indicator"
+        );
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal trueRangeSum = BigDecimal.ZERO;
+        BigDecimal negativeDirectionalMovementSum = BigDecimal.ZERO;
+
+        for (int i = startIndex;
+             i < highPrices.size();
+             i++) {
+
+            BigDecimal currentHigh = highPrices.get(i);
+            BigDecimal currentLow = lowPrices.get(i);
+            BigDecimal previousHigh = highPrices.get(i - 1);
+            BigDecimal previousLow = lowPrices.get(i - 1);
+            BigDecimal previousClose = closingPrices.get(i - 1);
+
+            BigDecimal highLow =
+                    currentHigh.subtract(currentLow).abs();
+
+            BigDecimal highPreviousClose =
+                    currentHigh.subtract(previousClose).abs();
+
+            BigDecimal lowPreviousClose =
+                    currentLow.subtract(previousClose).abs();
+
+            BigDecimal trueRange =
+                    highLow.max(
+                            highPreviousClose.max(
+                                    lowPreviousClose
+                            )
+                    );
+
+            trueRangeSum =
+                    trueRangeSum.add(trueRange);
+
+            BigDecimal upwardMove =
+                    currentHigh.subtract(previousHigh);
+
+            BigDecimal downwardMove =
+                    previousLow.subtract(currentLow);
+
+            if (downwardMove.compareTo(upwardMove) > 0
+                    && downwardMove.compareTo(BigDecimal.ZERO) > 0) {
+
+                negativeDirectionalMovementSum =
+                        negativeDirectionalMovementSum.add(
+                                downwardMove
+                        );
+            }
+        }
+
+        if (trueRangeSum.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        return negativeDirectionalMovementSum
+                .multiply(BigDecimal.valueOf(100))
+                .divide(
+                        trueRangeSum,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
@@ -943,6 +1090,47 @@ public class IndicatorService {
                 SCALE,
                 RoundingMode.HALF_UP
         );
+    }
+
+    // =========================
+    // DIRECTIONAL INDICATOR VALIDATION
+    // =========================
+
+    private void validateDirectionalPrices(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period,
+            String indicatorName) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    indicatorName + " price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    indicatorName + " period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    indicatorName + " price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period + 1) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate " + indicatorName
+            );
+        }
     }
 
     // =========================

@@ -240,3 +240,27 @@ Feature: Nexora technical indicators
       | 118.00 | 111.00 | 117.00 |
     When I calculate the Average Directional Index with period 5
     Then the Average Directional Index should be 100.00
+
+  Scenario: Calculate Positive Directional Indicator
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 96.00  | 101.00 |
+      | 104.00 | 98.00  | 103.00 |
+      | 106.00 | 99.00  | 105.00 |
+      | 108.00 | 101.00 | 107.00 |
+      | 110.00 | 103.00 | 109.00 |
+    When I calculate the Positive Directional Indicator with period 5
+    Then the Positive Directional Indicator should be 30.30
+
+  Scenario: Calculate Negative Directional Indicator
+    Given the following market prices:
+      | high   | low    | close  |
+      | 110.00 | 105.00 | 107.00 |
+      | 108.00 | 103.00 | 105.00 |
+      | 106.00 | 101.00 | 103.00 |
+      | 104.00 | 99.00  | 101.00 |
+      | 102.00 | 97.00  | 99.00  |
+      | 100.00 | 95.00  | 97.00  |
+    When I calculate the Negative Directional Indicator with period 5
+    Then the Negative Directional Indicator should be 40.00

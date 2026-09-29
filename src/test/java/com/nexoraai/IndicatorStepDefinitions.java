@@ -40,6 +40,8 @@ public class IndicatorStepDefinitions {
     private BigDecimal stochasticPercentDResult;
 
     private BigDecimal adxResult;
+    private BigDecimal positiveDiResult;
+    private BigDecimal negativeDiResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -477,6 +479,74 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "ADX value does not match expected result"
+        );
+    }
+
+    // =========================
+    // POSITIVE DIRECTIONAL INDICATOR (+DI)
+    // =========================
+
+    @When("I calculate the Positive Directional Indicator with period {int}")
+    public void calculatePositiveDirectionalIndicator(int period) {
+
+        positiveDiResult =
+                indicatorService.calculatePositiveDi(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        period
+                );
+    }
+
+    @Then("the Positive Directional Indicator should be {double}")
+    public void positiveDirectionalIndicatorShouldBe(double expectedValue) {
+
+        assertNotNull(positiveDiResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = positiveDiResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Positive Directional Indicator value does not match expected result"
+        );
+    }
+
+    // =========================
+    // NEGATIVE DIRECTIONAL INDICATOR (-DI)
+    // =========================
+
+    @When("I calculate the Negative Directional Indicator with period {int}")
+    public void calculateNegativeDirectionalIndicator(int period) {
+
+        negativeDiResult =
+                indicatorService.calculateNegativeDi(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        period
+                );
+    }
+
+    @Then("the Negative Directional Indicator should be {double}")
+    public void negativeDirectionalIndicatorShouldBe(double expectedValue) {
+
+        assertNotNull(negativeDiResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = negativeDiResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Negative Directional Indicator value does not match expected result"
         );
     }
 }
