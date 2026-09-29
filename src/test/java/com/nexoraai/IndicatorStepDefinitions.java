@@ -43,6 +43,8 @@ public class IndicatorStepDefinitions {
     private BigDecimal positiveDiResult;
     private BigDecimal negativeDiResult;
 
+    private BigDecimal cciResult;
+
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
 
@@ -547,6 +549,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Negative Directional Indicator value does not match expected result"
+        );
+    }
+
+    // =========================
+    // COMMODITY CHANNEL INDEX (CCI)
+    // =========================
+
+    @When("I calculate the Commodity Channel Index with period {int}")
+    public void calculateCommodityChannelIndex(int period) {
+
+        cciResult =
+                indicatorService.calculateCci(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        period
+                );
+    }
+
+    @Then("the Commodity Channel Index should be {double}")
+    public void commodityChannelIndexShouldBe(double expectedValue) {
+
+        assertNotNull(cciResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = cciResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "CCI value does not match expected result"
         );
     }
 }

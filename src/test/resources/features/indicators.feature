@@ -264,3 +264,14 @@ Feature: Nexora technical indicators
       | 100.00 | 95.00  | 97.00  |
     When I calculate the Negative Directional Indicator with period 5
     Then the Negative Directional Indicator should be 40.00
+
+  Scenario: Calculate Commodity Channel Index
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 96.00  | 101.00 |
+      | 104.00 | 98.00  | 103.00 |
+      | 106.00 | 99.00  | 105.00 |
+      | 108.00 | 101.00 | 107.00 |
+    When I calculate the Commodity Channel Index with period 5
+    Then the Commodity Channel Index should be 110.47

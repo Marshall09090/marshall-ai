@@ -1023,6 +1023,128 @@ public class IndicatorService {
     }
 
     // =========================
+    // COMMODITY CHANNEL INDEX (CCI)
+    // =========================
+
+    public BigDecimal calculateCci(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    "CCI price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "CCI period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "CCI price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate CCI"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        List<BigDecimal> typicalPrices = new ArrayList<>();
+
+        for (int i = startIndex;
+             i < highPrices.size();
+             i++) {
+
+            BigDecimal typicalPrice =
+                    highPrices.get(i)
+                            .add(lowPrices.get(i))
+                            .add(closingPrices.get(i))
+                            .divide(
+                                    BigDecimal.valueOf(3),
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            typicalPrices.add(typicalPrice);
+        }
+
+        BigDecimal typicalPriceSum =
+                typicalPrices.stream()
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
+
+        BigDecimal typicalPriceSma =
+                typicalPriceSum.divide(
+                        BigDecimal.valueOf(period),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+
+        BigDecimal meanDeviationSum =
+                BigDecimal.ZERO;
+
+        for (BigDecimal typicalPrice : typicalPrices) {
+
+            meanDeviationSum =
+                    meanDeviationSum.add(
+                            typicalPrice
+                                    .subtract(typicalPriceSma)
+                                    .abs()
+                    );
+        }
+
+        BigDecimal meanDeviation =
+                meanDeviationSum.divide(
+                        BigDecimal.valueOf(period),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+
+        if (meanDeviation.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        BigDecimal currentTypicalPrice =
+                typicalPrices.get(
+                        typicalPrices.size() - 1
+                );
+
+        BigDecimal constant =
+                new BigDecimal("0.015");
+
+        return currentTypicalPrice
+                .subtract(typicalPriceSma)
+                .divide(
+                        constant.multiply(meanDeviation),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
