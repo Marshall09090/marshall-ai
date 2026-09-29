@@ -1145,6 +1145,99 @@ public class IndicatorService {
     }
 
     // =========================
+    // WILLIAMS PERCENT R
+    // =========================
+
+    public BigDecimal calculateWilliamsPercentR(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    "Williams Percent R price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Williams Percent R period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "Williams Percent R price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Williams Percent R"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal highestHigh =
+                highPrices.get(startIndex);
+
+        BigDecimal lowestLow =
+                lowPrices.get(startIndex);
+
+        for (int i = startIndex + 1;
+             i < highPrices.size();
+             i++) {
+
+            highestHigh =
+                    highestHigh.max(
+                            highPrices.get(i)
+                    );
+
+            lowestLow =
+                    lowestLow.min(
+                            lowPrices.get(i)
+                    );
+        }
+
+        BigDecimal currentClose =
+                closingPrices.get(
+                        closingPrices.size() - 1
+                );
+
+        BigDecimal range =
+                highestHigh.subtract(lowestLow);
+
+        if (range.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        return highestHigh
+                .subtract(currentClose)
+                .divide(
+                        range,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .multiply(
+                        BigDecimal.valueOf(-100)
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

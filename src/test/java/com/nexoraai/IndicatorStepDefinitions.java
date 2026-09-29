@@ -44,6 +44,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal negativeDiResult;
 
     private BigDecimal cciResult;
+    private BigDecimal williamsPercentRResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -583,6 +584,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "CCI value does not match expected result"
+        );
+    }
+
+    // =========================
+    // WILLIAMS PERCENT R
+    // =========================
+
+    @When("I calculate Williams Percent R with period {int}")
+    public void calculateWilliamsPercentR(int period) {
+
+        williamsPercentRResult =
+                indicatorService.calculateWilliamsPercentR(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        period
+                );
+    }
+
+    @Then("Williams Percent R should be {double}")
+    public void williamsPercentRShouldBe(double expectedValue) {
+
+        assertNotNull(williamsPercentRResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = williamsPercentRResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Williams Percent R value does not match expected result"
         );
     }
 }

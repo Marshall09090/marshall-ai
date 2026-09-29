@@ -275,3 +275,14 @@ Feature: Nexora technical indicators
       | 108.00 | 101.00 | 107.00 |
     When I calculate the Commodity Channel Index with period 5
     Then the Commodity Channel Index should be 110.47
+
+  Scenario: Calculate Williams Percent R
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 96.00  | 101.00 |
+      | 104.00 | 98.00  | 103.00 |
+      | 106.00 | 99.00  | 105.00 |
+      | 108.00 | 101.00 | 107.00 |
+    When I calculate Williams Percent R with period 5
+    Then Williams Percent R should be -7.69
