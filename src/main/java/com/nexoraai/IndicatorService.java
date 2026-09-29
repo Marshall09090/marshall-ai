@@ -12,10 +12,10 @@ public class IndicatorService {
 
     private static final int SCALE = 8;
 
-    /**
-     * Calculates the Simple Moving Average (SMA)
-     * using the most recent prices for the requested period.
-     */
+    // =========================
+    // SMA
+    // =========================
+
     public BigDecimal calculateSma(
             List<BigDecimal> prices,
             int period) {
@@ -36,9 +36,10 @@ public class IndicatorService {
         );
     }
 
-    /**
-     * Calculates the Exponential Moving Average (EMA).
-     */
+    // =========================
+    // EMA
+    // =========================
+
     public BigDecimal calculateEma(
             List<BigDecimal> prices,
             int period) {
@@ -73,9 +74,10 @@ public class IndicatorService {
         );
     }
 
-    /**
-     * Calculates the Relative Strength Index (RSI).
-     */
+    // =========================
+    // RSI
+    // =========================
+
     public BigDecimal calculateRsi(
             List<BigDecimal> prices,
             int period) {
@@ -181,11 +183,10 @@ public class IndicatorService {
         );
     }
 
-    /**
-     * Calculates the current MACD line.
-     *
-     * MACD = Fast EMA - Slow EMA
-     */
+    // =========================
+    // MACD LINE
+    // =========================
+
     public BigDecimal calculateMacd(
             List<BigDecimal> prices,
             int fastPeriod,
@@ -211,11 +212,10 @@ public class IndicatorService {
                 );
     }
 
-    /**
-     * Calculates the MACD Signal Line.
-     *
-     * Signal Line = EMA of the MACD series.
-     */
+    // =========================
+    // MACD SIGNAL LINE
+    // =========================
+
     public BigDecimal calculateMacdSignalLine(
             List<BigDecimal> prices,
             int fastPeriod,
@@ -252,11 +252,10 @@ public class IndicatorService {
         );
     }
 
-    /**
-     * Calculates the MACD Histogram.
-     *
-     * MACD Histogram = MACD Line - Signal Line
-     */
+    // =========================
+    // MACD HISTOGRAM
+    // =========================
+
     public BigDecimal calculateMacdHistogram(
             List<BigDecimal> prices,
             int fastPeriod,
@@ -294,13 +293,10 @@ public class IndicatorService {
                 );
     }
 
-    /**
-     * Calculates Bollinger Bands.
-     *
-     * Index 0 = Middle Band
-     * Index 1 = Upper Band
-     * Index 2 = Lower Band
-     */
+    // =========================
+    // BOLLINGER BANDS
+    // =========================
+
     public List<BigDecimal> calculateBollingerBands(
             List<BigDecimal> prices,
             int period,
@@ -396,9 +392,111 @@ public class IndicatorService {
         );
     }
 
+    // =========================
+    // AVERAGE TRUE RANGE (ATR)
+    // =========================
+
     /**
-     * Builds a chronological MACD series.
+     * Calculates the Average True Range (ATR).
+     *
+     * True Range is the greatest of:
+     * 1. High - Low
+     * 2. |High - Previous Close|
+     * 3. |Low - Previous Close|
      */
+    public BigDecimal calculateAtr(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    "ATR price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "ATR period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "ATR price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period + 1) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate ATR"
+            );
+        }
+
+        List<BigDecimal> trueRanges =
+                new ArrayList<>();
+
+        for (int i = 1; i < highPrices.size(); i++) {
+
+            BigDecimal high =
+                    highPrices.get(i);
+
+            BigDecimal low =
+                    lowPrices.get(i);
+
+            BigDecimal previousClose =
+                    closingPrices.get(i - 1);
+
+            BigDecimal highLow =
+                    high.subtract(low).abs();
+
+            BigDecimal highPreviousClose =
+                    high.subtract(previousClose).abs();
+
+            BigDecimal lowPreviousClose =
+                    low.subtract(previousClose).abs();
+
+            BigDecimal trueRange =
+                    highLow.max(
+                            highPreviousClose.max(
+                                    lowPreviousClose
+                            )
+                    );
+
+            trueRanges.add(trueRange);
+        }
+
+        int startIndex =
+                trueRanges.size() - period;
+
+        BigDecimal sum = trueRanges
+                .subList(
+                        startIndex,
+                        trueRanges.size()
+                )
+                .stream()
+                .reduce(
+                        BigDecimal.ZERO,
+                        BigDecimal::add
+                );
+
+        return sum.divide(
+                BigDecimal.valueOf(period),
+                SCALE,
+                RoundingMode.HALF_UP
+        );
+    }
+
+    // =========================
+    // MACD HELPER
+    // =========================
+
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,
@@ -442,9 +540,10 @@ public class IndicatorService {
         return macdValues;
     }
 
-    /**
-     * Calculates the initial SMA used to seed an EMA.
-     */
+    // =========================
+    // EMA HELPER
+    // =========================
+
     private BigDecimal calculateInitialSma(
             List<BigDecimal> prices,
             int period) {
@@ -463,6 +562,10 @@ public class IndicatorService {
                 RoundingMode.HALF_UP
         );
     }
+
+    // =========================
+    // VALIDATION
+    // =========================
 
     private void validatePricesAndPeriod(
             List<BigDecimal> prices,

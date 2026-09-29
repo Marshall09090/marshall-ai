@@ -188,3 +188,15 @@ Feature: Nexora technical indicators
     Then the Bollinger middle band should be 109.50
     And the Bollinger upper band should be 121.03
     And the Bollinger lower band should be 97.97
+
+  Scenario: Calculate Average True Range
+    Given the following market prices:
+      | high   | low    | close  |
+      | 102.00 | 99.00  | 101.00 |
+      | 103.00 | 100.00 | 102.00 |
+      | 104.00 | 101.00 | 103.00 |
+      | 105.00 | 102.00 | 104.00 |
+      | 106.00 | 103.00 | 105.00 |
+      | 107.00 | 104.00 | 106.00 |
+    When I calculate the Average True Range with period 5
+    Then the Average True Range should be 3.00

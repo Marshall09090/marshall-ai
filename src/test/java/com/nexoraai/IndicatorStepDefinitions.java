@@ -32,6 +32,10 @@ public class IndicatorStepDefinitions {
     private BigDecimal bollingerUpperBandResult;
     private BigDecimal bollingerLowerBandResult;
 
+    private List<BigDecimal> highPrices;
+    private List<BigDecimal> lowPrices;
+    private BigDecimal atrResult;
+
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
 
@@ -308,6 +312,58 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Bollinger lower band does not match expected result"
+        );
+    }
+
+    // =========================
+    // AVERAGE TRUE RANGE (ATR)
+    // =========================
+
+    @Given("the following market prices:")
+    public void theFollowingMarketPrices(DataTable dataTable) {
+
+        List<java.util.Map<String, String>> rows =
+                dataTable.asMaps(String.class, String.class);
+
+        highPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("high")))
+                .toList();
+
+        lowPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("low")))
+                .toList();
+
+        closingPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("close")))
+                .toList();
+    }
+
+    @When("I calculate the Average True Range with period {int}")
+    public void calculateAverageTrueRange(int period) {
+
+        atrResult = indicatorService.calculateAtr(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                period
+        );
+    }
+
+    @Then("the Average True Range should be {double}")
+    public void averageTrueRangeShouldBe(double expectedValue) {
+
+        assertNotNull(atrResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = atrResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "ATR value does not match expected result"
         );
     }
 }
