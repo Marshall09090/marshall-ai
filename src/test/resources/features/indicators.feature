@@ -160,3 +160,31 @@ Feature: Nexora technical indicators
       | 134.00 |
     When I calculate the MACD histogram
     Then the MACD histogram should be 0.00
+
+  Scenario: Calculate Bollinger Bands
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 101.00 |
+      | 102.00 |
+      | 103.00 |
+      | 104.00 |
+      | 105.00 |
+      | 106.00 |
+      | 107.00 |
+      | 108.00 |
+      | 109.00 |
+      | 110.00 |
+      | 111.00 |
+      | 112.00 |
+      | 113.00 |
+      | 114.00 |
+      | 115.00 |
+      | 116.00 |
+      | 117.00 |
+      | 118.00 |
+      | 119.00 |
+    When I calculate Bollinger Bands with period 20 and standard deviation multiplier 2
+    Then the Bollinger middle band should be 109.50
+    And the Bollinger upper band should be 121.03
+    And the Bollinger lower band should be 97.97

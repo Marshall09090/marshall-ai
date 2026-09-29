@@ -16,7 +16,9 @@ public class IndicatorService {
      * Calculates the Simple Moving Average (SMA)
      * using the most recent prices for the requested period.
      */
-    public BigDecimal calculateSma(List<BigDecimal> prices, int period) {
+    public BigDecimal calculateSma(
+            List<BigDecimal> prices,
+            int period) {
 
         validatePricesAndPeriod(prices, period, "SMA");
 
@@ -37,7 +39,9 @@ public class IndicatorService {
     /**
      * Calculates the Exponential Moving Average (EMA).
      */
-    public BigDecimal calculateEma(List<BigDecimal> prices, int period) {
+    public BigDecimal calculateEma(
+            List<BigDecimal> prices,
+            int period) {
 
         validatePricesAndPeriod(prices, period, "EMA");
 
@@ -48,7 +52,10 @@ public class IndicatorService {
                         RoundingMode.HALF_UP
                 );
 
-        BigDecimal ema = calculateInitialSma(prices, period);
+        BigDecimal ema = calculateInitialSma(
+                prices,
+                period
+        );
 
         for (int i = period; i < prices.size(); i++) {
 
@@ -60,13 +67,18 @@ public class IndicatorService {
                     .add(ema);
         }
 
-        return ema.setScale(SCALE, RoundingMode.HALF_UP);
+        return ema.setScale(
+                SCALE,
+                RoundingMode.HALF_UP
+        );
     }
 
     /**
      * Calculates the Relative Strength Index (RSI).
      */
-    public BigDecimal calculateRsi(List<BigDecimal> prices, int period) {
+    public BigDecimal calculateRsi(
+            List<BigDecimal> prices,
+            int period) {
 
         if (period <= 0) {
             throw new IllegalArgumentException(
@@ -141,7 +153,10 @@ public class IndicatorService {
 
         if (averageLoss.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.valueOf(100)
-                    .setScale(SCALE, RoundingMode.HALF_UP);
+                    .setScale(
+                            SCALE,
+                            RoundingMode.HALF_UP
+                    );
         }
 
         BigDecimal relativeStrength = averageGain.divide(
@@ -160,7 +175,10 @@ public class IndicatorService {
                                 )
                 );
 
-        return rsi.setScale(SCALE, RoundingMode.HALF_UP);
+        return rsi.setScale(
+                SCALE,
+                RoundingMode.HALF_UP
+        );
     }
 
     /**
@@ -187,7 +205,10 @@ public class IndicatorService {
 
         return fastEma
                 .subtract(slowEma)
-                .setScale(SCALE, RoundingMode.HALF_UP);
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
     }
 
     /**
@@ -271,6 +292,108 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 );
+    }
+
+    /**
+     * Calculates Bollinger Bands.
+     *
+     * Index 0 = Middle Band
+     * Index 1 = Upper Band
+     * Index 2 = Lower Band
+     */
+    public List<BigDecimal> calculateBollingerBands(
+            List<BigDecimal> prices,
+            int period,
+            BigDecimal standardDeviationMultiplier) {
+
+        validatePricesAndPeriod(
+                prices,
+                period,
+                "Bollinger Bands"
+        );
+
+        if (standardDeviationMultiplier == null
+                || standardDeviationMultiplier.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Standard deviation multiplier must be greater than zero"
+            );
+        }
+
+        int startIndex = prices.size() - period;
+
+        List<BigDecimal> recentPrices =
+                prices.subList(
+                        startIndex,
+                        prices.size()
+                );
+
+        BigDecimal middleBand =
+                calculateSma(
+                        prices,
+                        period
+                );
+
+        BigDecimal squaredDifferenceSum =
+                BigDecimal.ZERO;
+
+        for (BigDecimal price : recentPrices) {
+
+            BigDecimal difference =
+                    price.subtract(middleBand);
+
+            BigDecimal squaredDifference =
+                    difference.multiply(difference);
+
+            squaredDifferenceSum =
+                    squaredDifferenceSum.add(
+                            squaredDifference
+                    );
+        }
+
+        BigDecimal variance =
+                squaredDifferenceSum.divide(
+                        BigDecimal.valueOf(period),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+
+        BigDecimal standardDeviation =
+                BigDecimal.valueOf(
+                        Math.sqrt(
+                                variance.doubleValue()
+                        )
+                );
+
+        BigDecimal bandDistance =
+                standardDeviation.multiply(
+                        standardDeviationMultiplier
+                );
+
+        BigDecimal upperBand =
+                middleBand
+                        .add(bandDistance)
+                        .setScale(
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        BigDecimal lowerBand =
+                middleBand
+                        .subtract(bandDistance)
+                        .setScale(
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        return List.of(
+                middleBand.setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                ),
+                upperBand,
+                lowerBand
+        );
     }
 
     /**

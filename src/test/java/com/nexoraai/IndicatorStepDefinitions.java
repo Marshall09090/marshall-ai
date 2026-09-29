@@ -28,6 +28,10 @@ public class IndicatorStepDefinitions {
     private BigDecimal macdSignalResult;
     private BigDecimal macdHistogramResult;
 
+    private BigDecimal bollingerMiddleBandResult;
+    private BigDecimal bollingerUpperBandResult;
+    private BigDecimal bollingerLowerBandResult;
+
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
 
@@ -228,6 +232,82 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "MACD histogram does not match expected result"
+        );
+    }
+
+    // =========================
+    // BOLLINGER BANDS
+    // =========================
+
+    @When("I calculate Bollinger Bands with period {int} and standard deviation multiplier {double}")
+    public void calculateBollingerBands(
+            int period,
+            double standardDeviationMultiplier) {
+
+        List<BigDecimal> bands = indicatorService.calculateBollingerBands(
+                closingPrices,
+                period,
+                BigDecimal.valueOf(standardDeviationMultiplier)
+        );
+
+        assertNotNull(bands);
+
+        bollingerMiddleBandResult = bands.get(0);
+        bollingerUpperBandResult = bands.get(1);
+        bollingerLowerBandResult = bands.get(2);
+    }
+
+    @Then("the Bollinger middle band should be {double}")
+    public void bollingerMiddleBandShouldBe(double expectedValue) {
+
+        assertNotNull(bollingerMiddleBandResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = bollingerMiddleBandResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Bollinger middle band does not match expected result"
+        );
+    }
+
+    @Then("the Bollinger upper band should be {double}")
+    public void bollingerUpperBandShouldBe(double expectedValue) {
+
+        assertNotNull(bollingerUpperBandResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = bollingerUpperBandResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Bollinger upper band does not match expected result"
+        );
+    }
+
+    @Then("the Bollinger lower band should be {double}")
+    public void bollingerLowerBandShouldBe(double expectedValue) {
+
+        assertNotNull(bollingerLowerBandResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = bollingerLowerBandResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Bollinger lower band does not match expected result"
         );
     }
 }
