@@ -396,14 +396,6 @@ public class IndicatorService {
     // AVERAGE TRUE RANGE (ATR)
     // =========================
 
-    /**
-     * Calculates the Average True Range (ATR).
-     *
-     * True Range is the greatest of:
-     * 1. High - Low
-     * 2. |High - Previous Close|
-     * 3. |Low - Previous Close|
-     */
     public BigDecimal calculateAtr(
             List<BigDecimal> highPrices,
             List<BigDecimal> lowPrices,
@@ -491,6 +483,99 @@ public class IndicatorService {
                 SCALE,
                 RoundingMode.HALF_UP
         );
+    }
+
+    // =========================
+    // STOCHASTIC OSCILLATOR %K
+    // =========================
+
+    public BigDecimal calculateStochasticPercentK(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null) {
+
+            throw new IllegalArgumentException(
+                    "Stochastic price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Stochastic period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "Stochastic price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Stochastic Oscillator"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal highestHigh =
+                highPrices.get(startIndex);
+
+        BigDecimal lowestLow =
+                lowPrices.get(startIndex);
+
+        for (int i = startIndex + 1;
+             i < highPrices.size();
+             i++) {
+
+            highestHigh =
+                    highestHigh.max(
+                            highPrices.get(i)
+                    );
+
+            lowestLow =
+                    lowestLow.min(
+                            lowPrices.get(i)
+                    );
+        }
+
+        BigDecimal currentClose =
+                closingPrices.get(
+                        closingPrices.size() - 1
+                );
+
+        BigDecimal range =
+                highestHigh.subtract(lowestLow);
+
+        if (range.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        return currentClose
+                .subtract(lowestLow)
+                .divide(
+                        range,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .multiply(
+                        BigDecimal.valueOf(100)
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
     }
 
     // =========================

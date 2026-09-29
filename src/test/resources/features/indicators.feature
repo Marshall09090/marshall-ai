@@ -200,3 +200,14 @@ Feature: Nexora technical indicators
       | 107.00 | 104.00 | 106.00 |
     When I calculate the Average True Range with period 5
     Then the Average True Range should be 3.00
+
+  Scenario: Calculate Stochastic Oscillator percent K
+    Given the following market prices:
+      | high   | low    | close  |
+      | 110.00 | 100.00 | 105.00 |
+      | 112.00 | 101.00 | 108.00 |
+      | 114.00 | 102.00 | 110.00 |
+      | 116.00 | 103.00 | 113.00 |
+      | 118.00 | 104.00 | 116.00 |
+    When I calculate the Stochastic Oscillator percent K with period 5
+    Then the Stochastic Oscillator percent K should be 88.89

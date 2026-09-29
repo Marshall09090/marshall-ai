@@ -36,6 +36,8 @@ public class IndicatorStepDefinitions {
     private List<BigDecimal> lowPrices;
     private BigDecimal atrResult;
 
+    private BigDecimal stochasticPercentKResult;
+
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
 
@@ -316,7 +318,7 @@ public class IndicatorStepDefinitions {
     }
 
     // =========================
-    // AVERAGE TRUE RANGE (ATR)
+    // MARKET PRICE DATA
     // =========================
 
     @Given("the following market prices:")
@@ -337,6 +339,10 @@ public class IndicatorStepDefinitions {
                 .map(row -> new BigDecimal(row.get("close")))
                 .toList();
     }
+
+    // =========================
+    // AVERAGE TRUE RANGE (ATR)
+    // =========================
 
     @When("I calculate the Average True Range with period {int}")
     public void calculateAverageTrueRange(int period) {
@@ -364,6 +370,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "ATR value does not match expected result"
+        );
+    }
+
+    // =========================
+    // STOCHASTIC OSCILLATOR %K
+    // =========================
+
+    @When("I calculate the Stochastic Oscillator percent K with period {int}")
+    public void calculateStochasticOscillatorPercentK(int period) {
+
+        stochasticPercentKResult =
+                indicatorService.calculateStochasticPercentK(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        period
+                );
+    }
+
+    @Then("the Stochastic Oscillator percent K should be {double}")
+    public void stochasticOscillatorPercentKShouldBe(double expectedValue) {
+
+        assertNotNull(stochasticPercentKResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = stochasticPercentKResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Stochastic Oscillator percent K does not match expected result"
         );
     }
 }
