@@ -2312,6 +2312,68 @@ public class IndicatorService {
     }
 
     // =========================
+    // AROON UP
+    // =========================
+
+    public BigDecimal calculateAroonUp(
+            List<BigDecimal> highPrices,
+            int period) {
+
+        if (highPrices == null || highPrices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Aroon Up high prices cannot be null or empty"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Aroon Up period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Aroon Up"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        int highestHighIndex = startIndex;
+        BigDecimal highestHigh =
+                highPrices.get(startIndex);
+
+        for (int i = startIndex + 1;
+             i < highPrices.size();
+             i++) {
+
+            if (highPrices.get(i).compareTo(highestHigh) >= 0) {
+                highestHigh = highPrices.get(i);
+                highestHighIndex = i;
+            }
+        }
+
+        int periodsSinceHighestHigh =
+                highPrices.size() - 1 - highestHighIndex;
+
+        return BigDecimal.valueOf(
+                        period - periodsSinceHighestHigh
+                )
+                .multiply(
+                        BigDecimal.valueOf(100)
+                )
+                .divide(
+                        BigDecimal.valueOf(period),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
