@@ -322,3 +322,14 @@ Feature: Nexora technical indicators
       | 106.00 | 1600   |
     When I calculate the On-Balance Volume
     Then the On-Balance Volume should be 2300
+
+  Scenario: Calculate Chaikin Money Flow
+    Given the following market prices with volume:
+      | high   | low    | close  | volume |
+      | 100.00 | 90.00  | 98.00  | 1000   |
+      | 102.00 | 92.00  | 100.00 | 1200   |
+      | 104.00 | 94.00  | 101.00 | 1100   |
+      | 106.00 | 96.00  | 104.00 | 1500   |
+      | 108.00 | 98.00  | 105.00 | 1300   |
+    When I calculate the Chaikin Money Flow with period 5
+    Then the Chaikin Money Flow should be 0.52

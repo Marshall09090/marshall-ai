@@ -50,6 +50,7 @@ public class IndicatorStepDefinitions {
     private List<BigDecimal> volumeValues;
     private BigDecimal mfiResult;
     private BigDecimal obvResult;
+    private BigDecimal cmfResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -757,6 +758,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "OBV value does not match expected result"
+        );
+    }
+
+    // =========================
+    // CHAIKIN MONEY FLOW (CMF)
+    // =========================
+
+    @When("I calculate the Chaikin Money Flow with period {int}")
+    public void calculateChaikinMoneyFlow(int period) {
+
+        cmfResult = indicatorService.calculateCmf(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                volumeValues,
+                period
+        );
+    }
+
+    @Then("the Chaikin Money Flow should be {double}")
+    public void chaikinMoneyFlowShouldBe(double expectedValue) {
+
+        assertNotNull(cmfResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = cmfResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "CMF value does not match expected result"
         );
     }
 }

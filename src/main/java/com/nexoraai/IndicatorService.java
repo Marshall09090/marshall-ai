@@ -1491,6 +1491,113 @@ public class IndicatorService {
     }
 
     // =========================
+    // CHAIKIN MONEY FLOW (CMF)
+    // =========================
+
+    public BigDecimal calculateCmf(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            List<BigDecimal> volumes,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null
+                || volumes == null) {
+
+            throw new IllegalArgumentException(
+                    "CMF price and volume lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "CMF period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()
+                || highPrices.size() != volumes.size()) {
+
+            throw new IllegalArgumentException(
+                    "CMF price and volume lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate CMF"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal moneyFlowVolumeSum = BigDecimal.ZERO;
+        BigDecimal volumeSum = BigDecimal.ZERO;
+
+        for (int i = startIndex;
+             i < highPrices.size();
+             i++) {
+
+            BigDecimal high = highPrices.get(i);
+            BigDecimal low = lowPrices.get(i);
+            BigDecimal close = closingPrices.get(i);
+            BigDecimal volume = volumes.get(i);
+
+            BigDecimal range = high.subtract(low);
+
+            BigDecimal moneyFlowMultiplier;
+
+            if (range.compareTo(BigDecimal.ZERO) == 0) {
+
+                moneyFlowMultiplier = BigDecimal.ZERO;
+
+            } else {
+
+                moneyFlowMultiplier = close
+                        .subtract(low)
+                        .subtract(high.subtract(close))
+                        .divide(
+                                range,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+            }
+
+            BigDecimal moneyFlowVolume =
+                    moneyFlowMultiplier.multiply(volume);
+
+            moneyFlowVolumeSum =
+                    moneyFlowVolumeSum.add(
+                            moneyFlowVolume
+                    );
+
+            volumeSum =
+                    volumeSum.add(volume);
+        }
+
+        if (volumeSum.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        return moneyFlowVolumeSum
+                .divide(
+                        volumeSum,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
