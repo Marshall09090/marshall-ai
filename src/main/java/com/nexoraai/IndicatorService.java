@@ -2019,6 +2019,75 @@ public class IndicatorService {
     }
 
     // =========================
+    // ICHIMOKU TENKAN-SEN
+    // =========================
+
+    public BigDecimal calculateIchimokuTenkanSen(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            int period) {
+
+        if (highPrices == null || lowPrices == null) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Tenkan-sen price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Tenkan-sen period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Tenkan-sen price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Ichimoku Tenkan-sen"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal highestHigh =
+                highPrices.get(startIndex);
+
+        BigDecimal lowestLow =
+                lowPrices.get(startIndex);
+
+        for (int i = startIndex + 1;
+             i < highPrices.size();
+             i++) {
+
+            highestHigh =
+                    highestHigh.max(
+                            highPrices.get(i)
+                    );
+
+            lowestLow =
+                    lowestLow.min(
+                            lowPrices.get(i)
+                    );
+        }
+
+        return highestHigh
+                .add(lowestLow)
+                .divide(
+                        BigDecimal.valueOf(2),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

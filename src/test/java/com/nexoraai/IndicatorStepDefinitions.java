@@ -55,6 +55,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal vwapResult;
     private BigDecimal averageVolumeResult;
     private BigDecimal parabolicSarResult;
+    private BigDecimal ichimokuTenkanSenResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -929,6 +930,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Parabolic SAR value does not match expected result. Expected: "
+                        + expected + ", Actual: " + actual
+        );
+    }
+
+    // =========================
+    // ICHIMOKU TENKAN-SEN
+    // =========================
+
+    @When("I calculate the Ichimoku Tenkan-sen with period {int}")
+    public void calculateIchimokuTenkanSen(int period) {
+
+        ichimokuTenkanSenResult =
+                indicatorService.calculateIchimokuTenkanSen(
+                        highPrices,
+                        lowPrices,
+                        period
+                );
+    }
+
+    @Then("the Ichimoku Tenkan-sen should be {double}")
+    public void ichimokuTenkanSenShouldBe(double expectedValue) {
+
+        assertNotNull(ichimokuTenkanSenResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = ichimokuTenkanSenResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Ichimoku Tenkan-sen value does not match expected result. Expected: "
                         + expected + ", Actual: " + actual
         );
     }

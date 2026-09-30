@@ -379,3 +379,18 @@ Feature: Nexora technical indicators
       | 110.00 | 105.00 | 109.00 |
     When I calculate the Parabolic SAR with acceleration factor 0.02 and maximum acceleration 0.20
     Then the Parabolic SAR should be 96.96
+
+  Scenario: Calculate Ichimoku Tenkan-sen
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 97.00  | 101.00 |
+      | 104.00 | 99.00  | 103.00 |
+      | 106.00 | 101.00 | 105.00 |
+      | 108.00 | 103.00 | 107.00 |
+      | 110.00 | 105.00 | 109.00 |
+      | 112.00 | 107.00 | 111.00 |
+      | 114.00 | 109.00 | 113.00 |
+      | 116.00 | 111.00 | 115.00 |
+    When I calculate the Ichimoku Tenkan-sen with period 9
+    Then the Ichimoku Tenkan-sen should be 105.50
