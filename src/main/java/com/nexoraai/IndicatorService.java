@@ -2444,6 +2444,59 @@ public class IndicatorService {
     }
 
     // =========================
+    // AROON OSCILLATOR
+    // =========================
+
+    public BigDecimal calculateAroonOscillator(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            int period) {
+
+        if (highPrices == null || lowPrices == null) {
+            throw new IllegalArgumentException(
+                    "Aroon Oscillator price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Aroon Oscillator period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()) {
+            throw new IllegalArgumentException(
+                    "Aroon Oscillator price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Aroon Oscillator"
+            );
+        }
+
+        BigDecimal aroonUp =
+                calculateAroonUp(
+                        highPrices,
+                        period
+                );
+
+        BigDecimal aroonDown =
+                calculateAroonDown(
+                        lowPrices,
+                        period
+                );
+
+        return aroonUp
+                .subtract(aroonDown)
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

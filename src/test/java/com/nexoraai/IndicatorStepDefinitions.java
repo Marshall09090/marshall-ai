@@ -62,6 +62,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal ichimokuChikouSpanResult;
     private BigDecimal aroonUpResult;
     private BigDecimal aroonDownResult;
+    private BigDecimal aroonOscillatorResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1173,6 +1174,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Aroon Down value does not match expected result. Expected: "
+                        + expected + ", Actual: " + actual
+        );
+    }
+
+    // =========================
+    // AROON OSCILLATOR
+    // =========================
+
+    @When("I calculate the Aroon Oscillator with period {int}")
+    public void calculateAroonOscillator(int period) {
+
+        aroonOscillatorResult =
+                indicatorService.calculateAroonOscillator(
+                        highPrices,
+                        lowPrices,
+                        period
+                );
+    }
+
+    @Then("the Aroon Oscillator should be {double}")
+    public void aroonOscillatorShouldBe(double expectedValue) {
+
+        assertNotNull(aroonOscillatorResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = aroonOscillatorResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Aroon Oscillator value does not match expected result. Expected: "
                         + expected + ", Actual: " + actual
         );
     }
