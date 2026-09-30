@@ -1436,6 +1436,61 @@ public class IndicatorService {
     }
 
     // =========================
+    // ON-BALANCE VOLUME (OBV)
+    // =========================
+
+    public BigDecimal calculateObv(
+            List<BigDecimal> closingPrices,
+            List<BigDecimal> volumes) {
+
+        if (closingPrices == null || volumes == null) {
+            throw new IllegalArgumentException(
+                    "OBV price and volume lists cannot be null"
+            );
+        }
+
+        if (closingPrices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "OBV prices cannot be empty"
+            );
+        }
+
+        if (closingPrices.size() != volumes.size()) {
+            throw new IllegalArgumentException(
+                    "OBV price and volume lists must have the same size"
+            );
+        }
+
+        BigDecimal obv = BigDecimal.ZERO;
+
+        for (int i = 1; i < closingPrices.size(); i++) {
+
+            BigDecimal currentClose =
+                    closingPrices.get(i);
+
+            BigDecimal previousClose =
+                    closingPrices.get(i - 1);
+
+            BigDecimal currentVolume =
+                    volumes.get(i);
+
+            if (currentClose.compareTo(previousClose) > 0) {
+
+                obv = obv.add(currentVolume);
+
+            } else if (currentClose.compareTo(previousClose) < 0) {
+
+                obv = obv.subtract(currentVolume);
+            }
+        }
+
+        return obv.setScale(
+                SCALE,
+                RoundingMode.HALF_UP
+        );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

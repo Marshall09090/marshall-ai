@@ -310,3 +310,15 @@ Feature: Nexora technical indicators
       | 107.00 | 101.00 | 106.00 | 1400   |
     When I calculate the Money Flow Index with period 5
     Then the Money Flow Index should be 77.38
+
+  Scenario: Calculate On-Balance Volume
+    Given the following closing prices with volume:
+      | close  | volume |
+      | 100.00 | 1000   |
+      | 102.00 | 1200   |
+      | 101.00 | 900    |
+      | 104.00 | 1500   |
+      | 103.00 | 1100   |
+      | 106.00 | 1600   |
+    When I calculate the On-Balance Volume
+    Then the On-Balance Volume should be 2300

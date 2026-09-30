@@ -49,6 +49,7 @@ public class IndicatorStepDefinitions {
 
     private List<BigDecimal> volumeValues;
     private BigDecimal mfiResult;
+    private BigDecimal obvResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -710,6 +711,52 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "MFI value does not match expected result"
+        );
+    }
+
+    // =========================
+    // ON-BALANCE VOLUME (OBV)
+    // =========================
+
+    @Given("the following closing prices with volume:")
+    public void theFollowingClosingPricesWithVolume(DataTable dataTable) {
+
+        List<java.util.Map<String, String>> rows =
+                dataTable.asMaps(String.class, String.class);
+
+        closingPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("close")))
+                .toList();
+
+        volumeValues = rows.stream()
+                .map(row -> new BigDecimal(row.get("volume")))
+                .toList();
+    }
+
+    @When("I calculate the On-Balance Volume")
+    public void calculateOnBalanceVolume() {
+
+        obvResult = indicatorService.calculateObv(
+                closingPrices,
+                volumeValues
+        );
+    }
+
+    @Then("the On-Balance Volume should be {double}")
+    public void onBalanceVolumeShouldBe(double expectedValue) {
+
+        assertNotNull(obvResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = obvResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "OBV value does not match expected result"
         );
     }
 }
