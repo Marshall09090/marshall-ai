@@ -1677,6 +1677,102 @@ public class IndicatorService {
     }
 
     // =========================
+    // VOLUME WEIGHTED AVERAGE PRICE (VWAP)
+    // =========================
+
+    public BigDecimal calculateVwap(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            List<BigDecimal> volumes) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null
+                || volumes == null) {
+
+            throw new IllegalArgumentException(
+                    "VWAP price and volume lists cannot be null"
+            );
+        }
+
+        if (highPrices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "VWAP prices cannot be empty"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()
+                || highPrices.size() != volumes.size()) {
+
+            throw new IllegalArgumentException(
+                    "VWAP price and volume lists must have the same size"
+            );
+        }
+
+        BigDecimal cumulativeTypicalPriceVolume =
+                BigDecimal.ZERO;
+
+        BigDecimal cumulativeVolume =
+                BigDecimal.ZERO;
+
+        for (int i = 0; i < highPrices.size(); i++) {
+
+            BigDecimal high =
+                    highPrices.get(i);
+
+            BigDecimal low =
+                    lowPrices.get(i);
+
+            BigDecimal close =
+                    closingPrices.get(i);
+
+            BigDecimal volume =
+                    volumes.get(i);
+
+            BigDecimal typicalPrice =
+                    high
+                            .add(low)
+                            .add(close)
+                            .divide(
+                                    BigDecimal.valueOf(3),
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            BigDecimal typicalPriceVolume =
+                    typicalPrice.multiply(volume);
+
+            cumulativeTypicalPriceVolume =
+                    cumulativeTypicalPriceVolume.add(
+                            typicalPriceVolume
+                    );
+
+            cumulativeVolume =
+                    cumulativeVolume.add(volume);
+        }
+
+        if (cumulativeVolume.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        return cumulativeTypicalPriceVolume
+                .divide(
+                        cumulativeVolume,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

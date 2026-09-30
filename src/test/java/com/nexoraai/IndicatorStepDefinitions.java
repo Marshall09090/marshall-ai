@@ -52,6 +52,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal obvResult;
     private BigDecimal cmfResult;
     private BigDecimal accumulationDistributionLineResult;
+    private BigDecimal vwapResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -827,6 +828,39 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Accumulation Distribution Line value does not match expected result"
+        );
+    }
+
+    // =========================
+    // VOLUME WEIGHTED AVERAGE PRICE (VWAP)
+    // =========================
+
+    @When("I calculate the Volume Weighted Average Price")
+    public void calculateVolumeWeightedAveragePrice() {
+
+        vwapResult = indicatorService.calculateVwap(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                volumeValues
+        );
+    }
+
+    @Then("the Volume Weighted Average Price should be {double}")
+    public void volumeWeightedAveragePriceShouldBe(double expectedValue) {
+
+        assertNotNull(vwapResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = vwapResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "VWAP value does not match expected result"
         );
     }
 }
