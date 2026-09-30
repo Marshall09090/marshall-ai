@@ -51,6 +51,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal mfiResult;
     private BigDecimal obvResult;
     private BigDecimal cmfResult;
+    private BigDecimal accumulationDistributionLineResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -792,6 +793,40 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "CMF value does not match expected result"
+        );
+    }
+
+    // =========================
+    // ACCUMULATION/DISTRIBUTION LINE (A/D LINE)
+    // =========================
+
+    @When("I calculate the Accumulation Distribution Line")
+    public void calculateAccumulationDistributionLine() {
+
+        accumulationDistributionLineResult =
+                indicatorService.calculateAccumulationDistributionLine(
+                        highPrices,
+                        lowPrices,
+                        closingPrices,
+                        volumeValues
+                );
+    }
+
+    @Then("the Accumulation Distribution Line should be {double}")
+    public void accumulationDistributionLineShouldBe(double expectedValue) {
+
+        assertNotNull(accumulationDistributionLineResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = accumulationDistributionLineResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Accumulation Distribution Line value does not match expected result"
         );
     }
 }

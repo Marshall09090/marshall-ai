@@ -1598,6 +1598,85 @@ public class IndicatorService {
     }
 
     // =========================
+    // ACCUMULATION/DISTRIBUTION LINE (A/D LINE)
+    // =========================
+
+    public BigDecimal calculateAccumulationDistributionLine(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            List<BigDecimal> volumes) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null
+                || volumes == null) {
+
+            throw new IllegalArgumentException(
+                    "Accumulation Distribution Line price and volume lists cannot be null"
+            );
+        }
+
+        if (highPrices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Accumulation Distribution Line prices cannot be empty"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()
+                || highPrices.size() != volumes.size()) {
+
+            throw new IllegalArgumentException(
+                    "Accumulation Distribution Line price and volume lists must have the same size"
+            );
+        }
+
+        BigDecimal accumulationDistributionLine = BigDecimal.ZERO;
+
+        for (int i = 0; i < highPrices.size(); i++) {
+
+            BigDecimal high = highPrices.get(i);
+            BigDecimal low = lowPrices.get(i);
+            BigDecimal close = closingPrices.get(i);
+            BigDecimal volume = volumes.get(i);
+
+            BigDecimal range = high.subtract(low);
+
+            BigDecimal moneyFlowMultiplier;
+
+            if (range.compareTo(BigDecimal.ZERO) == 0) {
+
+                moneyFlowMultiplier = BigDecimal.ZERO;
+
+            } else {
+
+                moneyFlowMultiplier = close
+                        .subtract(low)
+                        .subtract(high.subtract(close))
+                        .divide(
+                                range,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+            }
+
+            BigDecimal moneyFlowVolume =
+                    moneyFlowMultiplier.multiply(volume);
+
+            accumulationDistributionLine =
+                    accumulationDistributionLine.add(
+                            moneyFlowVolume
+                    );
+        }
+
+        return accumulationDistributionLine.setScale(
+                SCALE,
+                RoundingMode.HALF_UP
+        );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

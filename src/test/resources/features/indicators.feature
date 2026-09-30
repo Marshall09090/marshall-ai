@@ -333,3 +333,14 @@ Feature: Nexora technical indicators
       | 108.00 | 98.00  | 105.00 | 1300   |
     When I calculate the Chaikin Money Flow with period 5
     Then the Chaikin Money Flow should be 0.52
+
+  Scenario: Calculate Accumulation Distribution Line
+    Given the following market prices with volume:
+      | high   | low    | close  | volume |
+      | 100.00 | 90.00  | 98.00  | 1000   |
+      | 102.00 | 92.00  | 100.00 | 1200   |
+      | 104.00 | 94.00  | 101.00 | 1100   |
+      | 106.00 | 96.00  | 104.00 | 1500   |
+      | 108.00 | 98.00  | 105.00 | 1300   |
+    When I calculate the Accumulation Distribution Line
+    Then the Accumulation Distribution Line should be 3180.00
