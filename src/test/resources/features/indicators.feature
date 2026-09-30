@@ -436,3 +436,18 @@ Feature: Nexora technical indicators
       | 116.00 | 111.00 | 115.00 |
     When I calculate the Ichimoku Senkou Span B with period 9
     Then the Ichimoku Senkou Span B should be 105.50
+
+  Scenario: Calculate Ichimoku Chikou Span
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 97.00  | 101.00 |
+      | 104.00 | 99.00  | 103.00 |
+      | 106.00 | 101.00 | 105.00 |
+      | 108.00 | 103.00 | 107.00 |
+      | 110.00 | 105.00 | 109.00 |
+      | 112.00 | 107.00 | 111.00 |
+      | 114.00 | 109.00 | 113.00 |
+      | 116.00 | 111.00 | 115.00 |
+    When I calculate the Ichimoku Chikou Span
+    Then the Ichimoku Chikou Span should be 115.00

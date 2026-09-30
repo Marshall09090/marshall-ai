@@ -2291,6 +2291,27 @@ public class IndicatorService {
     }
 
     // =========================
+    // ICHIMOKU CHIKOU SPAN
+    // =========================
+
+    public BigDecimal calculateIchimokuChikouSpan(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null || closingPrices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Chikou Span closing prices cannot be null or empty"
+            );
+        }
+
+        return closingPrices
+                .get(closingPrices.size() - 1)
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

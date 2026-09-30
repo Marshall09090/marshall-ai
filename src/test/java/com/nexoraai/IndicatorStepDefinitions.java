@@ -59,6 +59,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal ichimokuKijunSenResult;
     private BigDecimal ichimokuSenkouSpanAResult;
     private BigDecimal ichimokuSenkouSpanBResult;
+    private BigDecimal ichimokuChikouSpanResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1072,6 +1073,38 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Ichimoku Senkou Span B value does not match expected result. Expected: "
+                        + expected + ", Actual: " + actual
+        );
+    }
+
+    // =========================
+    // ICHIMOKU CHIKOU SPAN
+    // =========================
+
+    @When("I calculate the Ichimoku Chikou Span")
+    public void calculateIchimokuChikouSpan() {
+
+        ichimokuChikouSpanResult =
+                indicatorService.calculateIchimokuChikouSpan(
+                        closingPrices
+                );
+    }
+
+    @Then("the Ichimoku Chikou Span should be {double}")
+    public void ichimokuChikouSpanShouldBe(double expectedValue) {
+
+        assertNotNull(ichimokuChikouSpanResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = ichimokuChikouSpanResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Ichimoku Chikou Span value does not match expected result. Expected: "
                         + expected + ", Actual: " + actual
         );
     }
