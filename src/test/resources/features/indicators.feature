@@ -367,3 +367,15 @@ Feature: Nexora technical indicators
       | 106.00 | 1600   |
     When I calculate the Average Volume with period 5
     Then the Average Volume should be 1260.00
+
+  Scenario: Calculate Parabolic SAR
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 102.00 | 97.00  | 101.00 |
+      | 104.00 | 99.00  | 103.00 |
+      | 106.00 | 101.00 | 105.00 |
+      | 108.00 | 103.00 | 107.00 |
+      | 110.00 | 105.00 | 109.00 |
+    When I calculate the Parabolic SAR with acceleration factor 0.02 and maximum acceleration 0.20
+    Then the Parabolic SAR should be 96.96

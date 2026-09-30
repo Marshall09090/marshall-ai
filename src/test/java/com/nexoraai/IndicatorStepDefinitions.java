@@ -54,6 +54,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal accumulationDistributionLineResult;
     private BigDecimal vwapResult;
     private BigDecimal averageVolumeResult;
+    private BigDecimal parabolicSarResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -893,6 +894,42 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Average Volume value does not match expected result"
+        );
+    }
+
+    // =========================
+    // PARABOLIC SAR
+    // =========================
+
+    @When("I calculate the Parabolic SAR with acceleration factor {double} and maximum acceleration {double}")
+    public void calculateParabolicSar(
+            double accelerationFactor,
+            double maximumAcceleration) {
+
+        parabolicSarResult = indicatorService.calculateParabolicSar(
+                highPrices,
+                lowPrices,
+                BigDecimal.valueOf(accelerationFactor),
+                BigDecimal.valueOf(maximumAcceleration)
+        );
+    }
+
+    @Then("the Parabolic SAR should be {double}")
+    public void parabolicSarShouldBe(double expectedValue) {
+
+        assertNotNull(parabolicSarResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = parabolicSarResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Parabolic SAR value does not match expected result. Expected: "
+                        + expected + ", Actual: " + actual
         );
     }
 }

@@ -1824,6 +1824,201 @@ public class IndicatorService {
     }
 
     // =========================
+    // PARABOLIC SAR
+    // =========================
+
+    public BigDecimal calculateParabolicSar(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            BigDecimal initialAccelerationFactor,
+            BigDecimal maximumAccelerationFactor) {
+
+        if (highPrices == null || lowPrices == null) {
+            throw new IllegalArgumentException(
+                    "Parabolic SAR price lists cannot be null"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()) {
+            throw new IllegalArgumentException(
+                    "Parabolic SAR price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < 2) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Parabolic SAR"
+            );
+        }
+
+        if (initialAccelerationFactor == null
+                || initialAccelerationFactor.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Parabolic SAR initial acceleration factor must be greater than zero"
+            );
+        }
+
+        if (maximumAccelerationFactor == null
+                || maximumAccelerationFactor.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Parabolic SAR maximum acceleration factor must be greater than zero"
+            );
+        }
+
+        if (initialAccelerationFactor.compareTo(maximumAccelerationFactor) > 0) {
+            throw new IllegalArgumentException(
+                    "Parabolic SAR initial acceleration factor cannot exceed maximum acceleration factor"
+            );
+        }
+
+        BigDecimal accelerationStep =
+                initialAccelerationFactor;
+
+        boolean upTrend =
+                highPrices.get(1).compareTo(highPrices.get(0)) >= 0;
+
+        BigDecimal sar;
+
+        BigDecimal extremePoint;
+
+        if (upTrend) {
+
+            sar = lowPrices.get(0);
+
+            extremePoint =
+                    highPrices.get(0).max(
+                            highPrices.get(1)
+                    );
+
+        } else {
+
+            sar = highPrices.get(0);
+
+            extremePoint =
+                    lowPrices.get(0).min(
+                            lowPrices.get(1)
+                    );
+        }
+
+        BigDecimal accelerationFactor =
+                initialAccelerationFactor;
+
+        for (int i = 1; i < highPrices.size(); i++) {
+
+            BigDecimal currentHigh =
+                    highPrices.get(i);
+
+            BigDecimal currentLow =
+                    lowPrices.get(i);
+
+            BigDecimal nextSar =
+                    sar.add(
+                            accelerationFactor.multiply(
+                                    extremePoint.subtract(sar)
+                            )
+                    );
+
+            if (upTrend) {
+
+                if (i >= 1) {
+                    nextSar =
+                            nextSar.min(
+                                    lowPrices.get(i - 1)
+                            );
+                }
+
+                if (i >= 2) {
+                    nextSar =
+                            nextSar.min(
+                                    lowPrices.get(i - 2)
+                            );
+                }
+
+                if (currentLow.compareTo(nextSar) < 0) {
+
+                    upTrend = false;
+
+                    nextSar =
+                            extremePoint;
+
+                    extremePoint =
+                            currentLow;
+
+                    accelerationFactor =
+                            initialAccelerationFactor;
+
+                } else if (currentHigh.compareTo(extremePoint) > 0) {
+
+                    extremePoint =
+                            currentHigh;
+
+                    accelerationFactor =
+                            accelerationFactor
+                                    .add(accelerationStep)
+                                    .min(
+                                            maximumAccelerationFactor
+                                    );
+                }
+
+            } else {
+
+                if (i >= 1) {
+                    nextSar =
+                            nextSar.max(
+                                    highPrices.get(i - 1)
+                            );
+                }
+
+                if (i >= 2) {
+                    nextSar =
+                            nextSar.max(
+                                    highPrices.get(i - 2)
+                            );
+                }
+
+                if (currentHigh.compareTo(nextSar) > 0) {
+
+                    upTrend = true;
+
+                    nextSar =
+                            extremePoint;
+
+                    extremePoint =
+                            currentHigh;
+
+                    accelerationFactor =
+                            initialAccelerationFactor;
+
+                } else if (currentLow.compareTo(extremePoint) < 0) {
+
+                    extremePoint =
+                            currentLow;
+
+                    accelerationFactor =
+                            accelerationFactor
+                                    .add(accelerationStep)
+                                    .min(
+                                            maximumAccelerationFactor
+                                    );
+                }
+            }
+
+            sar =
+                    nextSar.setScale(
+                            SCALE,
+                            RoundingMode.HALF_UP
+                    );
+        }
+
+        return sar.setScale(
+                SCALE,
+                RoundingMode.HALF_UP
+        );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
