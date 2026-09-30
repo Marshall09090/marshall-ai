@@ -355,3 +355,15 @@ Feature: Nexora technical indicators
       | 108.00 | 98.00  | 105.00 | 1300   |
     When I calculate the Volume Weighted Average Price
     Then the Volume Weighted Average Price should be 100.16
+
+  Scenario: Calculate Average Volume
+    Given the following closing prices with volume:
+      | close  | volume |
+      | 100.00 | 1000   |
+      | 102.00 | 1200   |
+      | 101.00 | 900    |
+      | 104.00 | 1500   |
+      | 103.00 | 1100   |
+      | 106.00 | 1600   |
+    When I calculate the Average Volume with period 5
+    Then the Average Volume should be 1260.00

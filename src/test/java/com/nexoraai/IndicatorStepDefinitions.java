@@ -53,6 +53,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal cmfResult;
     private BigDecimal accumulationDistributionLineResult;
     private BigDecimal vwapResult;
+    private BigDecimal averageVolumeResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -861,6 +862,37 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "VWAP value does not match expected result"
+        );
+    }
+
+    // =========================
+    // AVERAGE VOLUME
+    // =========================
+
+    @When("I calculate the Average Volume with period {int}")
+    public void calculateAverageVolume(int period) {
+
+        averageVolumeResult = indicatorService.calculateAverageVolume(
+                volumeValues,
+                period
+        );
+    }
+
+    @Then("the Average Volume should be {double}")
+    public void averageVolumeShouldBe(double expectedValue) {
+
+        assertNotNull(averageVolumeResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = averageVolumeResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Average Volume value does not match expected result"
         );
     }
 }

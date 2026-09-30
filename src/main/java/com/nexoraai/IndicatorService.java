@@ -1773,6 +1773,57 @@ public class IndicatorService {
     }
 
     // =========================
+    // AVERAGE VOLUME
+    // =========================
+
+    public BigDecimal calculateAverageVolume(
+            List<BigDecimal> volumes,
+            int period) {
+
+        if (volumes == null || volumes.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Average Volume values cannot be null or empty"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Average Volume period must be greater than zero"
+            );
+        }
+
+        if (volumes.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough volume values to calculate Average Volume"
+            );
+        }
+
+        int startIndex = volumes.size() - period;
+
+        BigDecimal volumeSum = volumes
+                .subList(
+                        startIndex,
+                        volumes.size()
+                )
+                .stream()
+                .reduce(
+                        BigDecimal.ZERO,
+                        BigDecimal::add
+                );
+
+        return volumeSum
+                .divide(
+                        BigDecimal.valueOf(period),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
