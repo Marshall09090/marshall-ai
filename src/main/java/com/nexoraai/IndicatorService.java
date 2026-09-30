@@ -1880,7 +1880,6 @@ public class IndicatorService {
                 highPrices.get(1).compareTo(highPrices.get(0)) >= 0;
 
         BigDecimal sar;
-
         BigDecimal extremePoint;
 
         if (upTrend) {
@@ -2048,6 +2047,75 @@ public class IndicatorService {
         if (highPrices.size() < period) {
             throw new IllegalArgumentException(
                     "Not enough prices to calculate Ichimoku Tenkan-sen"
+            );
+        }
+
+        int startIndex = highPrices.size() - period;
+
+        BigDecimal highestHigh =
+                highPrices.get(startIndex);
+
+        BigDecimal lowestLow =
+                lowPrices.get(startIndex);
+
+        for (int i = startIndex + 1;
+             i < highPrices.size();
+             i++) {
+
+            highestHigh =
+                    highestHigh.max(
+                            highPrices.get(i)
+                    );
+
+            lowestLow =
+                    lowestLow.min(
+                            lowPrices.get(i)
+                    );
+        }
+
+        return highestHigh
+                .add(lowestLow)
+                .divide(
+                        BigDecimal.valueOf(2),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
+    // ICHIMOKU KIJUN-SEN
+    // =========================
+
+    public BigDecimal calculateIchimokuKijunSen(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            int period) {
+
+        if (highPrices == null || lowPrices == null) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Kijun-sen price lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Kijun-sen period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Kijun-sen price lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Ichimoku Kijun-sen"
             );
         }
 
