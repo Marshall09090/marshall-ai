@@ -463,3 +463,15 @@ Feature: Nexora technical indicators
       | 105.00 | 100.00 | 103.00 |
     When I calculate Aroon Up with period 5
     Then Aroon Up should be 60.00
+
+  Scenario: Calculate Aroon Down
+    Given the following market prices:
+      | high   | low    | close  |
+      | 100.00 | 95.00  | 98.00  |
+      | 104.00 | 97.00  | 101.00 |
+      | 102.00 | 96.00  | 100.00 |
+      | 106.00 | 99.00  | 104.00 |
+      | 103.00 | 94.00  | 101.00 |
+      | 105.00 | 100.00 | 103.00 |
+    When I calculate Aroon Down with period 5
+    Then Aroon Down should be 80.00

@@ -2340,6 +2340,7 @@ public class IndicatorService {
         int startIndex = highPrices.size() - period;
 
         int highestHighIndex = startIndex;
+
         BigDecimal highestHigh =
                 highPrices.get(startIndex);
 
@@ -2348,7 +2349,10 @@ public class IndicatorService {
              i++) {
 
             if (highPrices.get(i).compareTo(highestHigh) >= 0) {
-                highestHigh = highPrices.get(i);
+
+                highestHigh =
+                        highPrices.get(i);
+
                 highestHighIndex = i;
             }
         }
@@ -2358,6 +2362,72 @@ public class IndicatorService {
 
         return BigDecimal.valueOf(
                         period - periodsSinceHighestHigh
+                )
+                .multiply(
+                        BigDecimal.valueOf(100)
+                )
+                .divide(
+                        BigDecimal.valueOf(period),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
+    // AROON DOWN
+    // =========================
+
+    public BigDecimal calculateAroonDown(
+            List<BigDecimal> lowPrices,
+            int period) {
+
+        if (lowPrices == null || lowPrices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Aroon Down low prices cannot be null or empty"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "Aroon Down period must be greater than zero"
+            );
+        }
+
+        if (lowPrices.size() < period) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Aroon Down"
+            );
+        }
+
+        int startIndex = lowPrices.size() - period;
+
+        int lowestLowIndex = startIndex;
+
+        BigDecimal lowestLow =
+                lowPrices.get(startIndex);
+
+        for (int i = startIndex + 1;
+             i < lowPrices.size();
+             i++) {
+
+            if (lowPrices.get(i).compareTo(lowestLow) <= 0) {
+
+                lowestLow =
+                        lowPrices.get(i);
+
+                lowestLowIndex = i;
+            }
+        }
+
+        int periodsSinceLowestLow =
+                lowPrices.size() - 1 - lowestLowIndex;
+
+        return BigDecimal.valueOf(
+                        period - periodsSinceLowestLow
                 )
                 .multiply(
                         BigDecimal.valueOf(100)
