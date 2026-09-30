@@ -2156,6 +2156,72 @@ public class IndicatorService {
     }
 
     // =========================
+    // ICHIMOKU SENKOU SPAN A
+    // =========================
+
+    public BigDecimal calculateIchimokuSenkouSpanA(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            int tenkanPeriod,
+            int kijunPeriod) {
+
+        if (highPrices == null || lowPrices == null) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Senkou Span A price lists cannot be null"
+            );
+        }
+
+        if (tenkanPeriod <= 0 || kijunPeriod <= 0) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Senkou Span A periods must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()) {
+            throw new IllegalArgumentException(
+                    "Ichimoku Senkou Span A price lists must have the same size"
+            );
+        }
+
+        int requiredPrices = Math.max(
+                tenkanPeriod,
+                kijunPeriod
+        );
+
+        if (highPrices.size() < requiredPrices) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate Ichimoku Senkou Span A"
+            );
+        }
+
+        BigDecimal tenkanSen =
+                calculateIchimokuTenkanSen(
+                        highPrices,
+                        lowPrices,
+                        tenkanPeriod
+                );
+
+        BigDecimal kijunSen =
+                calculateIchimokuKijunSen(
+                        highPrices,
+                        lowPrices,
+                        kijunPeriod
+                );
+
+        return tenkanSen
+                .add(kijunSen)
+                .divide(
+                        BigDecimal.valueOf(2),
+                        SCALE,
+                        RoundingMode.HALF_UP
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

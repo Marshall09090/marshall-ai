@@ -57,6 +57,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal parabolicSarResult;
     private BigDecimal ichimokuTenkanSenResult;
     private BigDecimal ichimokuKijunSenResult;
+    private BigDecimal ichimokuSenkouSpanAResult;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -999,6 +1000,43 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "Ichimoku Kijun-sen value does not match expected result. Expected: "
+                        + expected + ", Actual: " + actual
+        );
+    }
+
+    // =========================
+    // ICHIMOKU SENKOU SPAN A
+    // =========================
+
+    @When("I calculate the Ichimoku Senkou Span A with Tenkan period {int} and Kijun period {int}")
+    public void calculateIchimokuSenkouSpanA(
+            int tenkanPeriod,
+            int kijunPeriod) {
+
+        ichimokuSenkouSpanAResult =
+                indicatorService.calculateIchimokuSenkouSpanA(
+                        highPrices,
+                        lowPrices,
+                        tenkanPeriod,
+                        kijunPeriod
+                );
+    }
+
+    @Then("the Ichimoku Senkou Span A should be {double}")
+    public void ichimokuSenkouSpanAShouldBe(double expectedValue) {
+
+        assertNotNull(ichimokuSenkouSpanAResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = ichimokuSenkouSpanAResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "Ichimoku Senkou Span A value does not match expected result. Expected: "
                         + expected + ", Actual: " + actual
         );
     }
