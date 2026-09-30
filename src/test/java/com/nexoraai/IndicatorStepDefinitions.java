@@ -47,6 +47,9 @@ public class IndicatorStepDefinitions {
     private BigDecimal williamsPercentRResult;
     private BigDecimal rocResult;
 
+    private List<BigDecimal> volumeValues;
+    private BigDecimal mfiResult;
+
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
 
@@ -650,6 +653,63 @@ public class IndicatorStepDefinitions {
                 0,
                 expected.compareTo(actual),
                 "ROC value does not match expected result"
+        );
+    }
+
+    // =========================
+    // MONEY FLOW INDEX (MFI)
+    // =========================
+
+    @Given("the following market prices with volume:")
+    public void theFollowingMarketPricesWithVolume(DataTable dataTable) {
+
+        List<java.util.Map<String, String>> rows =
+                dataTable.asMaps(String.class, String.class);
+
+        highPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("high")))
+                .toList();
+
+        lowPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("low")))
+                .toList();
+
+        closingPrices = rows.stream()
+                .map(row -> new BigDecimal(row.get("close")))
+                .toList();
+
+        volumeValues = rows.stream()
+                .map(row -> new BigDecimal(row.get("volume")))
+                .toList();
+    }
+
+    @When("I calculate the Money Flow Index with period {int}")
+    public void calculateMoneyFlowIndex(int period) {
+
+        mfiResult = indicatorService.calculateMfi(
+                highPrices,
+                lowPrices,
+                closingPrices,
+                volumeValues,
+                period
+        );
+    }
+
+    @Then("the Money Flow Index should be {double}")
+    public void moneyFlowIndexShouldBe(double expectedValue) {
+
+        assertNotNull(mfiResult);
+
+        BigDecimal expected = BigDecimal.valueOf(expectedValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal actual = mfiResult
+                .setScale(2, RoundingMode.HALF_UP);
+
+        assertEquals(
+                0,
+                expected.compareTo(actual),
+                "MFI value does not match expected result"
         );
     }
 }

@@ -298,3 +298,15 @@ Feature: Nexora technical indicators
       | 110.00 |
     When I calculate the Rate of Change with period 5
     Then the Rate of Change should be 10.00
+
+  Scenario: Calculate Money Flow Index
+    Given the following market prices with volume:
+      | high   | low    | close  | volume |
+      | 100.00 | 95.00  | 98.00  | 1000   |
+      | 102.00 | 96.00  | 101.00 | 1200   |
+      | 104.00 | 98.00  | 103.00 | 1100   |
+      | 103.00 | 97.00  | 99.00  | 1500   |
+      | 105.00 | 99.00  | 104.00 | 1300   |
+      | 107.00 | 101.00 | 106.00 | 1400   |
+    When I calculate the Money Flow Index with period 5
+    Then the Money Flow Index should be 77.38

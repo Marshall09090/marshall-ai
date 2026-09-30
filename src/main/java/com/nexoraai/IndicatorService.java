@@ -1292,6 +1292,150 @@ public class IndicatorService {
     }
 
     // =========================
+    // MONEY FLOW INDEX (MFI)
+    // =========================
+
+    public BigDecimal calculateMfi(
+            List<BigDecimal> highPrices,
+            List<BigDecimal> lowPrices,
+            List<BigDecimal> closingPrices,
+            List<BigDecimal> volumes,
+            int period) {
+
+        if (highPrices == null
+                || lowPrices == null
+                || closingPrices == null
+                || volumes == null) {
+
+            throw new IllegalArgumentException(
+                    "MFI price and volume lists cannot be null"
+            );
+        }
+
+        if (period <= 0) {
+            throw new IllegalArgumentException(
+                    "MFI period must be greater than zero"
+            );
+        }
+
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()
+                || highPrices.size() != volumes.size()) {
+
+            throw new IllegalArgumentException(
+                    "MFI price and volume lists must have the same size"
+            );
+        }
+
+        if (highPrices.size() < period + 1) {
+            throw new IllegalArgumentException(
+                    "Not enough prices to calculate MFI"
+            );
+        }
+
+        int startIndex =
+                highPrices.size() - period;
+
+        BigDecimal positiveMoneyFlow =
+                BigDecimal.ZERO;
+
+        BigDecimal negativeMoneyFlow =
+                BigDecimal.ZERO;
+
+        for (int i = startIndex;
+             i < highPrices.size();
+             i++) {
+
+            BigDecimal previousTypicalPrice =
+                    highPrices.get(i - 1)
+                            .add(lowPrices.get(i - 1))
+                            .add(closingPrices.get(i - 1))
+                            .divide(
+                                    BigDecimal.valueOf(3),
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            BigDecimal currentTypicalPrice =
+                    highPrices.get(i)
+                            .add(lowPrices.get(i))
+                            .add(closingPrices.get(i))
+                            .divide(
+                                    BigDecimal.valueOf(3),
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            );
+
+            BigDecimal rawMoneyFlow =
+                    currentTypicalPrice.multiply(
+                            volumes.get(i)
+                    );
+
+            if (currentTypicalPrice.compareTo(previousTypicalPrice) > 0) {
+
+                positiveMoneyFlow =
+                        positiveMoneyFlow.add(
+                                rawMoneyFlow
+                        );
+
+            } else if (currentTypicalPrice.compareTo(previousTypicalPrice) < 0) {
+
+                negativeMoneyFlow =
+                        negativeMoneyFlow.add(
+                                rawMoneyFlow
+                        );
+            }
+        }
+
+        if (negativeMoneyFlow.compareTo(BigDecimal.ZERO) == 0) {
+
+            if (positiveMoneyFlow.compareTo(BigDecimal.ZERO) == 0) {
+                return BigDecimal.valueOf(50)
+                        .setScale(
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+            }
+
+            return BigDecimal.valueOf(100)
+                    .setScale(
+                            SCALE,
+                            RoundingMode.HALF_UP
+                    );
+        }
+
+        if (positiveMoneyFlow.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
+        }
+
+        BigDecimal moneyFlowRatio =
+                positiveMoneyFlow.divide(
+                        negativeMoneyFlow,
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+
+        return BigDecimal.valueOf(100)
+                .subtract(
+                        BigDecimal.valueOf(100)
+                                .divide(
+                                        BigDecimal.ONE.add(
+                                                moneyFlowRatio
+                                        ),
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                )
+                )
+                .setScale(
+                        SCALE,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
