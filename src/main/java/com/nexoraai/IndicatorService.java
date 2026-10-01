@@ -2497,6 +2497,175 @@ public class IndicatorService {
     }
 
     // =========================
+    // BULL FLAG PATTERN
+    // =========================
+
+    public boolean detectBullFlag(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Bull Flag closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Bull Flag closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Bull Flag closing prices must be greater than zero"
+                );
+            }
+        }
+
+        BigDecimal startingPrice =
+                closingPrices.get(0);
+
+        for (int peakIndex = 2;
+             peakIndex <= closingPrices.size() - 4;
+             peakIndex++) {
+
+            BigDecimal polePeak =
+                    closingPrices.get(peakIndex);
+
+            boolean localPeak =
+                    polePeak.compareTo(
+                            closingPrices.get(peakIndex - 1)
+                    ) > 0
+                            && polePeak.compareTo(
+                            closingPrices.get(peakIndex + 1)
+                    ) > 0;
+
+            if (!localPeak) {
+                continue;
+            }
+
+            BigDecimal poleGainPercent =
+                    polePeak
+                            .subtract(startingPrice)
+                            .divide(
+                                    startingPrice,
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            )
+                            .multiply(
+                                    BigDecimal.valueOf(100)
+                            );
+
+            if (poleGainPercent.compareTo(
+                    BigDecimal.valueOf(5)
+            ) < 0) {
+                continue;
+            }
+
+            boolean poleMostlyRising = true;
+
+            for (int i = 1; i <= peakIndex; i++) {
+
+                if (closingPrices.get(i).compareTo(
+                        closingPrices.get(i - 1)
+                ) < 0) {
+                    poleMostlyRising = false;
+                    break;
+                }
+            }
+
+            if (!poleMostlyRising) {
+                continue;
+            }
+
+            int breakoutIndex = -1;
+
+            for (int i = peakIndex + 3;
+                 i < closingPrices.size();
+                 i++) {
+
+                if (closingPrices.get(i).compareTo(polePeak) > 0) {
+                    breakoutIndex = i;
+                    break;
+                }
+            }
+
+            if (breakoutIndex == -1) {
+                continue;
+            }
+
+            BigDecimal pullbackLow =
+                    closingPrices.get(peakIndex + 1);
+
+            int pullbackLowIndex =
+                    peakIndex + 1;
+
+            for (int i = peakIndex + 2;
+                 i < breakoutIndex;
+                 i++) {
+
+                if (closingPrices.get(i).compareTo(pullbackLow) < 0) {
+                    pullbackLow =
+                            closingPrices.get(i);
+
+                    pullbackLowIndex = i;
+                }
+            }
+
+            BigDecimal poleHeight =
+                    polePeak.subtract(startingPrice);
+
+            BigDecimal pullbackDepth =
+                    polePeak.subtract(pullbackLow);
+
+            BigDecimal maximumPullbackDepth =
+                    poleHeight.multiply(
+                            new BigDecimal("0.50")
+                    );
+
+            if (pullbackDepth.compareTo(BigDecimal.ZERO) <= 0
+                    || pullbackDepth.compareTo(maximumPullbackDepth) > 0) {
+                continue;
+            }
+
+            boolean pullbackDeclines =
+                    closingPrices.get(peakIndex + 1)
+                            .compareTo(polePeak) < 0;
+
+            if (!pullbackDeclines) {
+                continue;
+            }
+
+            boolean recoveryAfterPullback = false;
+
+            for (int i = pullbackLowIndex + 1;
+                 i <= breakoutIndex;
+                 i++) {
+
+                if (closingPrices.get(i).compareTo(
+                        closingPrices.get(i - 1)
+                ) > 0) {
+                    recoveryAfterPullback = true;
+                    break;
+                }
+            }
+
+            if (!recoveryAfterPullback) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

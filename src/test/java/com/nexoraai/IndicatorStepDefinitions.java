@@ -63,6 +63,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal aroonUpResult;
     private BigDecimal aroonDownResult;
     private BigDecimal aroonOscillatorResult;
+    private boolean bullFlagDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1209,6 +1210,29 @@ public class IndicatorStepDefinitions {
                 expected.compareTo(actual),
                 "Aroon Oscillator value does not match expected result. Expected: "
                         + expected + ", Actual: " + actual
+        );
+    }
+
+    // =========================
+    // BULL FLAG PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Bull Flag pattern")
+    public void analyzePricesForBullFlagPattern() {
+
+        bullFlagDetected =
+                indicatorService.detectBullFlag(
+                        closingPrices
+                );
+    }
+
+    @Then("the Bull Flag pattern should be detected")
+    public void bullFlagPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                bullFlagDetected,
+                "Bull Flag pattern was not detected"
         );
     }
 }

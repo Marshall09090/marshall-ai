@@ -487,3 +487,18 @@ Feature: Nexora technical indicators
       | 105.00 | 100.00 | 103.00 |
     When I calculate the Aroon Oscillator with period 5
     Then the Aroon Oscillator should be -20.00
+
+  Scenario: Detect Bull Flag pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 104.00 |
+      | 108.00 |
+      | 112.00 |
+      | 110.00 |
+      | 109.00 |
+      | 108.50 |
+      | 111.00 |
+      | 114.00 |
+    When I analyze the prices for a Bull Flag pattern
+    Then the Bull Flag pattern should be detected
