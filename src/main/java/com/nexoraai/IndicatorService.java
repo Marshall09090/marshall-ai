@@ -2666,6 +2666,175 @@ public class IndicatorService {
     }
 
     // =========================
+    // BEAR FLAG PATTERN
+    // =========================
+
+    public boolean detectBearFlag(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Bear Flag closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Bear Flag closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Bear Flag closing prices must be greater than zero"
+                );
+            }
+        }
+
+        BigDecimal startingPrice =
+                closingPrices.get(0);
+
+        for (int troughIndex = 2;
+             troughIndex <= closingPrices.size() - 4;
+             troughIndex++) {
+
+            BigDecimal poleTrough =
+                    closingPrices.get(troughIndex);
+
+            boolean localTrough =
+                    poleTrough.compareTo(
+                            closingPrices.get(troughIndex - 1)
+                    ) < 0
+                            && poleTrough.compareTo(
+                            closingPrices.get(troughIndex + 1)
+                    ) < 0;
+
+            if (!localTrough) {
+                continue;
+            }
+
+            BigDecimal poleDeclinePercent =
+                    startingPrice
+                            .subtract(poleTrough)
+                            .divide(
+                                    startingPrice,
+                                    SCALE,
+                                    RoundingMode.HALF_UP
+                            )
+                            .multiply(
+                                    BigDecimal.valueOf(100)
+                            );
+
+            if (poleDeclinePercent.compareTo(
+                    BigDecimal.valueOf(5)
+            ) < 0) {
+                continue;
+            }
+
+            boolean poleMostlyFalling = true;
+
+            for (int i = 1; i <= troughIndex; i++) {
+
+                if (closingPrices.get(i).compareTo(
+                        closingPrices.get(i - 1)
+                ) > 0) {
+                    poleMostlyFalling = false;
+                    break;
+                }
+            }
+
+            if (!poleMostlyFalling) {
+                continue;
+            }
+
+            int breakdownIndex = -1;
+
+            for (int i = troughIndex + 3;
+                 i < closingPrices.size();
+                 i++) {
+
+                if (closingPrices.get(i).compareTo(poleTrough) < 0) {
+                    breakdownIndex = i;
+                    break;
+                }
+            }
+
+            if (breakdownIndex == -1) {
+                continue;
+            }
+
+            BigDecimal reboundHigh =
+                    closingPrices.get(troughIndex + 1);
+
+            int reboundHighIndex =
+                    troughIndex + 1;
+
+            for (int i = troughIndex + 2;
+                 i < breakdownIndex;
+                 i++) {
+
+                if (closingPrices.get(i).compareTo(reboundHigh) > 0) {
+                    reboundHigh =
+                            closingPrices.get(i);
+
+                    reboundHighIndex = i;
+                }
+            }
+
+            BigDecimal poleHeight =
+                    startingPrice.subtract(poleTrough);
+
+            BigDecimal reboundDepth =
+                    reboundHigh.subtract(poleTrough);
+
+            BigDecimal maximumReboundDepth =
+                    poleHeight.multiply(
+                            new BigDecimal("0.50")
+                    );
+
+            if (reboundDepth.compareTo(BigDecimal.ZERO) <= 0
+                    || reboundDepth.compareTo(maximumReboundDepth) > 0) {
+                continue;
+            }
+
+            boolean reboundRises =
+                    closingPrices.get(troughIndex + 1)
+                            .compareTo(poleTrough) > 0;
+
+            if (!reboundRises) {
+                continue;
+            }
+
+            boolean declineAfterRebound = false;
+
+            for (int i = reboundHighIndex + 1;
+                 i <= breakdownIndex;
+                 i++) {
+
+                if (closingPrices.get(i).compareTo(
+                        closingPrices.get(i - 1)
+                ) < 0) {
+                    declineAfterRebound = true;
+                    break;
+                }
+            }
+
+            if (!declineAfterRebound) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

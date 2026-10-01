@@ -502,3 +502,18 @@ Feature: Nexora technical indicators
       | 114.00 |
     When I analyze the prices for a Bull Flag pattern
     Then the Bull Flag pattern should be detected
+
+  Scenario: Detect Bear Flag pattern
+    Given the following closing prices:
+      | price  |
+      | 114.00 |
+      | 110.00 |
+      | 106.00 |
+      | 102.00 |
+      | 104.00 |
+      | 105.00 |
+      | 105.50 |
+      | 103.00 |
+      | 100.00 |
+    When I analyze the prices for a Bear Flag pattern
+    Then the Bear Flag pattern should be detected
