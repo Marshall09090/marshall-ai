@@ -557,3 +557,16 @@ Feature: Nexora technical indicators
       | 99.00  |
     When I analyze the prices for a Double Top pattern
     Then the Double Top pattern should be detected
+
+  Scenario: Detect Double Bottom pattern
+    Given the following closing prices:
+      | price  |
+      | 108.00 |
+      | 104.00 |
+      | 100.00 |
+      | 104.00 |
+      | 99.80  |
+      | 105.00 |
+      | 109.00 |
+    When I analyze the prices for a Double Bottom pattern
+    Then the Double Bottom pattern should be detected

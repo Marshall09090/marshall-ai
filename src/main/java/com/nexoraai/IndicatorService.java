@@ -3125,6 +3125,159 @@ public class IndicatorService {
     }
 
     // =========================
+    // DOUBLE BOTTOM PATTERN
+    // =========================
+
+    public boolean detectDoubleBottom(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Double Bottom closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Double Bottom closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Double Bottom closing prices must be greater than zero"
+                );
+            }
+        }
+
+        for (int firstBottomIndex = 1;
+             firstBottomIndex < closingPrices.size() - 4;
+             firstBottomIndex++) {
+
+            BigDecimal firstBottom =
+                    closingPrices.get(firstBottomIndex);
+
+            boolean firstLocalBottom =
+                    firstBottom.compareTo(
+                            closingPrices.get(firstBottomIndex - 1)
+                    ) < 0
+                            && firstBottom.compareTo(
+                            closingPrices.get(firstBottomIndex + 1)
+                    ) < 0;
+
+            if (!firstLocalBottom) {
+                continue;
+            }
+
+            for (int secondBottomIndex = firstBottomIndex + 2;
+                 secondBottomIndex < closingPrices.size() - 1;
+                 secondBottomIndex++) {
+
+                BigDecimal secondBottom =
+                        closingPrices.get(secondBottomIndex);
+
+                boolean secondLocalBottom =
+                        secondBottom.compareTo(
+                                closingPrices.get(secondBottomIndex - 1)
+                        ) < 0
+                                && secondBottom.compareTo(
+                                closingPrices.get(secondBottomIndex + 1)
+                        ) < 0;
+
+                if (!secondLocalBottom) {
+                    continue;
+                }
+
+                BigDecimal smallerBottom =
+                        firstBottom.min(secondBottom);
+
+                BigDecimal bottomDifferencePercent =
+                        firstBottom
+                                .subtract(secondBottom)
+                                .abs()
+                                .divide(
+                                        smallerBottom,
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                )
+                                .multiply(
+                                        BigDecimal.valueOf(100)
+                                );
+
+                if (bottomDifferencePercent.compareTo(
+                        new BigDecimal("1.50")
+                ) > 0) {
+                    continue;
+                }
+
+                BigDecimal neckline =
+                        closingPrices.get(firstBottomIndex + 1);
+
+                for (int i = firstBottomIndex + 2;
+                     i < secondBottomIndex;
+                     i++) {
+
+                    neckline =
+                            neckline.max(
+                                    closingPrices.get(i)
+                            );
+                }
+
+                BigDecimal averageBottom =
+                        firstBottom
+                                .add(secondBottom)
+                                .divide(
+                                        BigDecimal.valueOf(2),
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                );
+
+                BigDecimal reboundPercent =
+                        neckline
+                                .subtract(averageBottom)
+                                .divide(
+                                        averageBottom,
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                )
+                                .multiply(
+                                        BigDecimal.valueOf(100)
+                                );
+
+                if (reboundPercent.compareTo(
+                        BigDecimal.valueOf(2)
+                ) < 0) {
+                    continue;
+                }
+
+                boolean necklineBreak = false;
+
+                for (int i = secondBottomIndex + 1;
+                     i < closingPrices.size();
+                     i++) {
+
+                    if (closingPrices.get(i).compareTo(neckline) > 0) {
+                        necklineBreak = true;
+                        break;
+                    }
+                }
+
+                if (necklineBreak) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
