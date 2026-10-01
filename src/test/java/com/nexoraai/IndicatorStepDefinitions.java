@@ -69,6 +69,7 @@ public class IndicatorStepDefinitions {
     private boolean bearishBreakdownDetected;
     private boolean doubleTopDetected;
     private boolean doubleBottomDetected;
+    private boolean headAndShouldersDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1353,6 +1354,29 @@ public class IndicatorStepDefinitions {
                 true,
                 doubleBottomDetected,
                 "Double Bottom pattern was not detected"
+        );
+    }
+
+    // =========================
+    // HEAD AND SHOULDERS PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Head and Shoulders pattern")
+    public void analyzePricesForHeadAndShouldersPattern() {
+
+        headAndShouldersDetected =
+                indicatorService.detectHeadAndShoulders(
+                        closingPrices
+                );
+    }
+
+    @Then("the Head and Shoulders pattern should be detected")
+    public void headAndShouldersPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                headAndShouldersDetected,
+                "Head and Shoulders pattern was not detected"
         );
     }
 }

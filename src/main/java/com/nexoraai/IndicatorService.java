@@ -3278,6 +3278,222 @@ public class IndicatorService {
     }
 
     // =========================
+    // HEAD AND SHOULDERS PATTERN
+    // =========================
+
+    public boolean detectHeadAndShoulders(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Head and Shoulders closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Head and Shoulders closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Head and Shoulders closing prices must be greater than zero"
+                );
+            }
+        }
+
+        for (int leftShoulderIndex = 1;
+             leftShoulderIndex <= closingPrices.size() - 6;
+             leftShoulderIndex++) {
+
+            BigDecimal leftShoulder =
+                    closingPrices.get(leftShoulderIndex);
+
+            boolean leftShoulderIsPeak =
+                    leftShoulder.compareTo(
+                            closingPrices.get(leftShoulderIndex - 1)
+                    ) > 0
+                            && leftShoulder.compareTo(
+                            closingPrices.get(leftShoulderIndex + 1)
+                    ) > 0;
+
+            if (!leftShoulderIsPeak) {
+                continue;
+            }
+
+            for (int headIndex = leftShoulderIndex + 2;
+                 headIndex <= closingPrices.size() - 4;
+                 headIndex++) {
+
+                BigDecimal head =
+                        closingPrices.get(headIndex);
+
+                boolean headIsPeak =
+                        head.compareTo(
+                                closingPrices.get(headIndex - 1)
+                        ) > 0
+                                && head.compareTo(
+                                closingPrices.get(headIndex + 1)
+                        ) > 0;
+
+                if (!headIsPeak) {
+                    continue;
+                }
+
+                if (head.compareTo(leftShoulder) <= 0) {
+                    continue;
+                }
+
+                BigDecimal leftNeckline =
+                        closingPrices.get(leftShoulderIndex + 1);
+
+                for (int i = leftShoulderIndex + 2;
+                     i < headIndex;
+                     i++) {
+
+                    leftNeckline =
+                            leftNeckline.min(
+                                    closingPrices.get(i)
+                            );
+                }
+
+                for (int rightShoulderIndex = headIndex + 2;
+                     rightShoulderIndex < closingPrices.size() - 1;
+                     rightShoulderIndex++) {
+
+                    BigDecimal rightShoulder =
+                            closingPrices.get(rightShoulderIndex);
+
+                    boolean rightShoulderIsPeak =
+                            rightShoulder.compareTo(
+                                    closingPrices.get(rightShoulderIndex - 1)
+                            ) > 0
+                                    && rightShoulder.compareTo(
+                                    closingPrices.get(rightShoulderIndex + 1)
+                            ) > 0;
+
+                    if (!rightShoulderIsPeak) {
+                        continue;
+                    }
+
+                    if (head.compareTo(rightShoulder) <= 0) {
+                        continue;
+                    }
+
+                    BigDecimal largerShoulder =
+                            leftShoulder.max(rightShoulder);
+
+                    BigDecimal shoulderDifferencePercent =
+                            leftShoulder
+                                    .subtract(rightShoulder)
+                                    .abs()
+                                    .divide(
+                                            largerShoulder,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (shoulderDifferencePercent.compareTo(
+                            BigDecimal.valueOf(3)
+                    ) > 0) {
+                        continue;
+                    }
+
+                    BigDecimal headProminencePercent =
+                            head
+                                    .subtract(largerShoulder)
+                                    .divide(
+                                            largerShoulder,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (headProminencePercent.compareTo(
+                            BigDecimal.valueOf(2)
+                    ) < 0) {
+                        continue;
+                    }
+
+                    BigDecimal rightNeckline =
+                            closingPrices.get(headIndex + 1);
+
+                    for (int i = headIndex + 2;
+                         i < rightShoulderIndex;
+                         i++) {
+
+                        rightNeckline =
+                                rightNeckline.min(
+                                        closingPrices.get(i)
+                                );
+                    }
+
+                    BigDecimal largerNeckline =
+                            leftNeckline.max(rightNeckline);
+
+                    BigDecimal necklineDifferencePercent =
+                            leftNeckline
+                                    .subtract(rightNeckline)
+                                    .abs()
+                                    .divide(
+                                            largerNeckline,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (necklineDifferencePercent.compareTo(
+                            BigDecimal.valueOf(3)
+                    ) > 0) {
+                        continue;
+                    }
+
+                    BigDecimal neckline =
+                            leftNeckline
+                                    .add(rightNeckline)
+                                    .divide(
+                                            BigDecimal.valueOf(2),
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    );
+
+                    boolean necklineBreak = false;
+
+                    for (int i = rightShoulderIndex + 1;
+                         i < closingPrices.size();
+                         i++) {
+
+                        if (closingPrices.get(i).compareTo(neckline) < 0) {
+                            necklineBreak = true;
+                            break;
+                        }
+                    }
+
+                    if (necklineBreak) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

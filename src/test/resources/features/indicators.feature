@@ -570,3 +570,16 @@ Feature: Nexora technical indicators
       | 109.00 |
     When I analyze the prices for a Double Bottom pattern
     Then the Double Bottom pattern should be detected
+
+  Scenario: Detect Head and Shoulders pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 108.00 |
+      | 103.00 |
+      | 114.00 |
+      | 103.50 |
+      | 108.20 |
+      | 102.00 |
+    When I analyze the prices for a Head and Shoulders pattern
+    Then the Head and Shoulders pattern should be detected
