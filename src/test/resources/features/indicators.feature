@@ -596,3 +596,17 @@ Feature: Nexora technical indicators
       | 109.00 |
     When I analyze the prices for an Inverse Head and Shoulders pattern
     Then the Inverse Head and Shoulders pattern should be detected
+
+  Scenario: Detect Ascending Triangle pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 105.00 |
+      | 101.50 |
+      | 105.20 |
+      | 102.50 |
+      | 105.10 |
+      | 103.80 |
+      | 107.00 |
+    When I analyze the prices for an Ascending Triangle pattern
+    Then the Ascending Triangle pattern should be detected

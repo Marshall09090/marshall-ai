@@ -3713,6 +3713,149 @@ public class IndicatorService {
     }
 
     // =========================
+    // ASCENDING TRIANGLE PATTERN
+    // =========================
+
+    public boolean detectAscendingTriangle(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Ascending Triangle closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Ascending Triangle closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Ascending Triangle closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakoutIndex = closingPrices.size() - 1;
+
+        List<BigDecimal> resistancePeaks =
+                new ArrayList<>();
+
+        List<BigDecimal> risingLows =
+                new ArrayList<>();
+
+        for (int i = 1;
+             i < breakoutIndex;
+             i++) {
+
+            BigDecimal currentPrice =
+                    closingPrices.get(i);
+
+            BigDecimal previousPrice =
+                    closingPrices.get(i - 1);
+
+            BigDecimal nextPrice =
+                    closingPrices.get(i + 1);
+
+            boolean localPeak =
+                    currentPrice.compareTo(previousPrice) > 0
+                            && currentPrice.compareTo(nextPrice) > 0;
+
+            if (localPeak) {
+                resistancePeaks.add(currentPrice);
+            }
+
+            boolean localTrough =
+                    currentPrice.compareTo(previousPrice) < 0
+                            && currentPrice.compareTo(nextPrice) < 0;
+
+            if (localTrough) {
+                risingLows.add(currentPrice);
+            }
+        }
+
+        if (resistancePeaks.size() < 2
+                || risingLows.size() < 2) {
+            return false;
+        }
+
+        BigDecimal highestResistance =
+                resistancePeaks.get(0);
+
+        BigDecimal lowestResistance =
+                resistancePeaks.get(0);
+
+        for (BigDecimal peak : resistancePeaks) {
+
+            highestResistance =
+                    highestResistance.max(peak);
+
+            lowestResistance =
+                    lowestResistance.min(peak);
+        }
+
+        BigDecimal resistanceVariationPercent =
+                highestResistance
+                        .subtract(lowestResistance)
+                        .divide(
+                                highestResistance,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (resistanceVariationPercent.compareTo(
+                BigDecimal.ONE
+        ) > 0) {
+            return false;
+        }
+
+        for (int i = 1;
+             i < risingLows.size();
+             i++) {
+
+            if (risingLows.get(i).compareTo(
+                    risingLows.get(i - 1)
+            ) <= 0) {
+                return false;
+            }
+        }
+
+        BigDecimal breakoutPrice =
+                closingPrices.get(breakoutIndex);
+
+        if (breakoutPrice.compareTo(highestResistance) <= 0) {
+            return false;
+        }
+
+        BigDecimal breakoutPercent =
+                breakoutPrice
+                        .subtract(highestResistance)
+                        .divide(
+                                highestResistance,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        return breakoutPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
