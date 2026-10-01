@@ -73,6 +73,7 @@ public class IndicatorStepDefinitions {
     private boolean inverseHeadAndShouldersDetected;
     private boolean ascendingTriangleDetected;
     private boolean descendingTriangleDetected;
+    private boolean symmetricalTriangleDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1449,6 +1450,29 @@ public class IndicatorStepDefinitions {
                 true,
                 descendingTriangleDetected,
                 "Descending Triangle pattern was not detected"
+        );
+    }
+
+    // =========================
+    // SYMMETRICAL TRIANGLE PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Symmetrical Triangle pattern")
+    public void analyzePricesForSymmetricalTrianglePattern() {
+
+        symmetricalTriangleDetected =
+                indicatorService.detectSymmetricalTriangle(
+                        closingPrices
+                );
+    }
+
+    @Then("the Symmetrical Triangle pattern should be detected")
+    public void symmetricalTrianglePatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                symmetricalTriangleDetected,
+                "Symmetrical Triangle pattern was not detected"
         );
     }
 }
