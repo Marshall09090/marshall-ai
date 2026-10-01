@@ -583,3 +583,16 @@ Feature: Nexora technical indicators
       | 102.00 |
     When I analyze the prices for a Head and Shoulders pattern
     Then the Head and Shoulders pattern should be detected
+
+  Scenario: Detect Inverse Head and Shoulders pattern
+    Given the following closing prices:
+      | price  |
+      | 110.00 |
+      | 103.00 |
+      | 107.00 |
+      | 96.00  |
+      | 107.50 |
+      | 103.20 |
+      | 109.00 |
+    When I analyze the prices for an Inverse Head and Shoulders pattern
+    Then the Inverse Head and Shoulders pattern should be detected
