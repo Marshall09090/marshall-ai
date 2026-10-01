@@ -3513,6 +3513,149 @@ public class IndicatorService {
         return false;
     }
 
+    // =========================
+    // RISING WEDGE PATTERN
+    // =========================
+
+    public boolean detectRisingWedge(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Rising Wedge closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Rising Wedge closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Rising Wedge closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakdownIndex =
+                closingPrices.size() - 1;
+
+        List<BigDecimal> fallingHighs =
+                new ArrayList<>();
+
+        List<BigDecimal> risingLows =
+                new ArrayList<>();
+
+        for (int i = 1;
+             i < breakdownIndex;
+             i++) {
+
+            BigDecimal currentPrice =
+                    closingPrices.get(i);
+
+            BigDecimal previousPrice =
+                    closingPrices.get(i - 1);
+
+            BigDecimal nextPrice =
+                    closingPrices.get(i + 1);
+
+            boolean localPeak =
+                    currentPrice.compareTo(previousPrice) > 0
+                            && currentPrice.compareTo(nextPrice) > 0;
+
+            if (localPeak) {
+                fallingHighs.add(currentPrice);
+            }
+
+            boolean localTrough =
+                    currentPrice.compareTo(previousPrice) < 0
+                            && currentPrice.compareTo(nextPrice) < 0;
+
+            if (localTrough) {
+                risingLows.add(currentPrice);
+            }
+        }
+
+        if (fallingHighs.size() < 2
+                || risingLows.size() < 2) {
+            return false;
+        }
+
+        for (int i = 1;
+             i < fallingHighs.size();
+             i++) {
+
+            if (fallingHighs.get(i).compareTo(
+                    fallingHighs.get(i - 1)
+            ) >= 0) {
+                return false;
+            }
+        }
+
+        for (int i = 1;
+             i < risingLows.size();
+             i++) {
+
+            if (risingLows.get(i).compareTo(
+                    risingLows.get(i - 1)
+            ) <= 0) {
+                return false;
+            }
+        }
+
+        int rangeCount =
+                Math.min(
+                        fallingHighs.size(),
+                        risingLows.size()
+                );
+
+        BigDecimal firstRange =
+                fallingHighs.get(0)
+                        .subtract(risingLows.get(0));
+
+        BigDecimal lastRange =
+                fallingHighs.get(rangeCount - 1)
+                        .subtract(risingLows.get(rangeCount - 1));
+
+        if (firstRange.compareTo(BigDecimal.ZERO) <= 0
+                || lastRange.compareTo(BigDecimal.ZERO) <= 0
+                || lastRange.compareTo(firstRange) >= 0) {
+            return false;
+        }
+
+        BigDecimal lastSupport =
+                risingLows.get(risingLows.size() - 1);
+
+        BigDecimal breakdownPrice =
+                closingPrices.get(breakdownIndex);
+
+        if (breakdownPrice.compareTo(lastSupport) >= 0) {
+            return false;
+        }
+
+        BigDecimal breakdownPercent =
+                lastSupport
+                        .subtract(breakdownPrice)
+                        .divide(
+                                lastSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        return breakdownPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,

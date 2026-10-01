@@ -74,6 +74,7 @@ public class IndicatorStepDefinitions {
     private boolean ascendingTriangleDetected;
     private boolean descendingTriangleDetected;
     private boolean symmetricalTriangleDetected;
+    private boolean risingWedgeDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1473,6 +1474,29 @@ public class IndicatorStepDefinitions {
                 true,
                 symmetricalTriangleDetected,
                 "Symmetrical Triangle pattern was not detected"
+        );
+    }
+
+    // =========================
+    // RISING WEDGE PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Rising Wedge pattern")
+    public void analyzePricesForRisingWedgePattern() {
+
+        risingWedgeDetected =
+                indicatorService.detectRisingWedge(
+                        closingPrices
+                );
+    }
+
+    @Then("the Rising Wedge pattern should be detected")
+    public void risingWedgePatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                risingWedgeDetected,
+                "Rising Wedge pattern was not detected"
         );
     }
 }

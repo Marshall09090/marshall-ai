@@ -638,3 +638,17 @@ Feature: Nexora technical indicators
       | 107.50 |
     When I analyze the prices for a Symmetrical Triangle pattern
     Then the Symmetrical Triangle pattern should be detected
+
+  Scenario: Detect Rising Wedge pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 106.00 |
+      | 102.00 |
+      | 105.00 |
+      | 103.00 |
+      | 104.50 |
+      | 103.80 |
+      | 101.50 |
+    When I analyze the prices for a Rising Wedge pattern
+    Then the Rising Wedge pattern should be detected
