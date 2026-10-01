@@ -65,6 +65,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal aroonOscillatorResult;
     private boolean bullFlagDetected;
     private boolean bearFlagDetected;
+    private boolean bullishBreakoutDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1257,6 +1258,29 @@ public class IndicatorStepDefinitions {
                 true,
                 bearFlagDetected,
                 "Bear Flag pattern was not detected"
+        );
+    }
+
+    // =========================
+    // BULLISH BREAKOUT
+    // =========================
+
+    @When("I analyze the prices for a Bullish Breakout")
+    public void analyzePricesForBullishBreakout() {
+
+        bullishBreakoutDetected =
+                indicatorService.detectBullishBreakout(
+                        closingPrices
+                );
+    }
+
+    @Then("the Bullish Breakout should be detected")
+    public void bullishBreakoutShouldBeDetected() {
+
+        assertEquals(
+                true,
+                bullishBreakoutDetected,
+                "Bullish Breakout was not detected"
         );
     }
 }

@@ -517,3 +517,17 @@ Feature: Nexora technical indicators
       | 100.00 |
     When I analyze the prices for a Bear Flag pattern
     Then the Bear Flag pattern should be detected
+
+
+  Scenario: Detect Bullish Breakout
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 101.00 |
+      | 102.00 |
+      | 101.50 |
+      | 102.50 |
+      | 103.00 |
+      | 105.50 |
+    When I analyze the prices for a Bullish Breakout
+    Then the Bullish Breakout should be detected

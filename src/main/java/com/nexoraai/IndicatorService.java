@@ -2835,6 +2835,74 @@ public class IndicatorService {
     }
 
     // =========================
+    // BULLISH BREAKOUT
+    // =========================
+
+    public boolean detectBullishBreakout(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Bullish Breakout closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 4) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Bullish Breakout closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Bullish Breakout closing prices must be greater than zero"
+                );
+            }
+        }
+
+        BigDecimal currentPrice =
+                closingPrices.get(closingPrices.size() - 1);
+
+        BigDecimal previousResistance =
+                closingPrices.get(0);
+
+        for (int i = 1;
+             i < closingPrices.size() - 1;
+             i++) {
+
+            previousResistance =
+                    previousResistance.max(
+                            closingPrices.get(i)
+                    );
+        }
+
+        if (currentPrice.compareTo(previousResistance) <= 0) {
+            return false;
+        }
+
+        BigDecimal breakoutPercent =
+                currentPrice
+                        .subtract(previousResistance)
+                        .divide(
+                                previousResistance,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        return breakoutPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
