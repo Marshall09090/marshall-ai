@@ -652,3 +652,17 @@ Feature: Nexora technical indicators
       | 101.50 |
     When I analyze the prices for a Rising Wedge pattern
     Then the Rising Wedge pattern should be detected
+
+  Scenario: Detect Falling Wedge pattern
+    Given the following closing prices:
+      | price  |
+      | 110.00 |
+      | 104.00 |
+      | 108.00 |
+      | 103.00 |
+      | 106.00 |
+      | 102.00 |
+      | 105.00 |
+      | 107.00 |
+    When I analyze the prices for a Falling Wedge pattern
+    Then the Falling Wedge pattern should be detected
