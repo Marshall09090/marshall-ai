@@ -610,3 +610,17 @@ Feature: Nexora technical indicators
       | 107.00 |
     When I analyze the prices for an Ascending Triangle pattern
     Then the Ascending Triangle pattern should be detected
+
+  Scenario: Detect Descending Triangle pattern
+    Given the following closing prices:
+      | price  |
+      | 110.00 |
+      | 100.00 |
+      | 108.00 |
+      | 100.20 |
+      | 106.00 |
+      | 99.90  |
+      | 104.00 |
+      | 98.00  |
+    When I analyze the prices for a Descending Triangle pattern
+    Then the Descending Triangle pattern should be detected

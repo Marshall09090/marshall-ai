@@ -12,95 +12,47 @@ public class IndicatorService {
 
     private static final int SCALE = 8;
 
-    // =========================
-    // SMA
-    // =========================
-
-    public BigDecimal calculateSma(
-            List<BigDecimal> prices,
-            int period) {
-
+    public BigDecimal calculateSma(List<BigDecimal> prices, int period) {
         validatePricesAndPeriod(prices, period, "SMA");
-
         int startIndex = prices.size() - period;
-
-        BigDecimal sum = prices
-                .subList(startIndex, prices.size())
+        BigDecimal sum = prices.subList(startIndex, prices.size())
                 .stream()
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return sum.divide(
-                BigDecimal.valueOf(period),
-                SCALE,
-                RoundingMode.HALF_UP
-        );
+        return sum.divide(BigDecimal.valueOf(period), SCALE, RoundingMode.HALF_UP);
     }
 
-    // =========================
-    // EMA
-    // =========================
-
-    public BigDecimal calculateEma(
-            List<BigDecimal> prices,
-            int period) {
-
+    public BigDecimal calculateEma(List<BigDecimal> prices, int period) {
         validatePricesAndPeriod(prices, period, "EMA");
 
         BigDecimal multiplier = BigDecimal.valueOf(2)
-                .divide(
-                        BigDecimal.valueOf(period + 1L),
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .divide(BigDecimal.valueOf(period + 1L), SCALE, RoundingMode.HALF_UP);
 
-        BigDecimal ema = calculateInitialSma(
-                prices,
-                period
-        );
+        BigDecimal ema = calculateInitialSma(prices, period);
 
         for (int i = period; i < prices.size(); i++) {
-
             BigDecimal price = prices.get(i);
-
-            ema = price
-                    .subtract(ema)
+            ema = price.subtract(ema)
                     .multiply(multiplier)
                     .add(ema);
         }
 
-        return ema.setScale(
-                SCALE,
-                RoundingMode.HALF_UP
-        );
+        return ema.setScale(SCALE, RoundingMode.HALF_UP);
     }
 
-    // =========================
-    // RSI
-    // =========================
-
-    public BigDecimal calculateRsi(
-            List<BigDecimal> prices,
-            int period) {
-
+    public BigDecimal calculateRsi(List<BigDecimal> prices, int period) {
         if (period <= 0) {
-            throw new IllegalArgumentException(
-                    "Period must be greater than zero"
-            );
+            throw new IllegalArgumentException("Period must be greater than zero");
         }
 
         if (prices == null || prices.size() < period + 1) {
-            throw new IllegalArgumentException(
-                    "Not enough prices to calculate RSI"
-            );
+            throw new IllegalArgumentException("Not enough prices to calculate RSI");
         }
 
         BigDecimal gains = BigDecimal.ZERO;
         BigDecimal losses = BigDecimal.ZERO;
 
         for (int i = 1; i <= period; i++) {
-
-            BigDecimal change = prices.get(i)
-                    .subtract(prices.get(i - 1));
+            BigDecimal change = prices.get(i).subtract(prices.get(i - 1));
 
             if (change.signum() > 0) {
                 gains = gains.add(change);
@@ -122,9 +74,7 @@ public class IndicatorService {
         );
 
         for (int i = period + 1; i < prices.size(); i++) {
-
-            BigDecimal change = prices.get(i)
-                    .subtract(prices.get(i - 1));
+            BigDecimal change = prices.get(i).subtract(prices.get(i - 1));
 
             BigDecimal gain = change.signum() > 0
                     ? change
@@ -137,28 +87,17 @@ public class IndicatorService {
             averageGain = averageGain
                     .multiply(BigDecimal.valueOf(period - 1L))
                     .add(gain)
-                    .divide(
-                            BigDecimal.valueOf(period),
-                            SCALE,
-                            RoundingMode.HALF_UP
-                    );
+                    .divide(BigDecimal.valueOf(period), SCALE, RoundingMode.HALF_UP);
 
             averageLoss = averageLoss
                     .multiply(BigDecimal.valueOf(period - 1L))
                     .add(loss)
-                    .divide(
-                            BigDecimal.valueOf(period),
-                            SCALE,
-                            RoundingMode.HALF_UP
-                    );
+                    .divide(BigDecimal.valueOf(period), SCALE, RoundingMode.HALF_UP);
         }
 
         if (averageLoss.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.valueOf(100)
-                    .setScale(
-                            SCALE,
-                            RoundingMode.HALF_UP
-                    );
+                    .setScale(SCALE, RoundingMode.HALF_UP);
         }
 
         BigDecimal relativeStrength = averageGain.divide(
@@ -177,44 +116,23 @@ public class IndicatorService {
                                 )
                 );
 
-        return rsi.setScale(
-                SCALE,
-                RoundingMode.HALF_UP
-        );
+        return rsi.setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // MACD LINE
-    // =========================
 
     public BigDecimal calculateMacd(
             List<BigDecimal> prices,
             int fastPeriod,
             int slowPeriod) {
 
-        validateMacdPeriods(
-                prices,
-                fastPeriod,
-                slowPeriod
-        );
+        validateMacdPeriods(prices, fastPeriod, slowPeriod);
 
-        BigDecimal fastEma =
-                calculateEma(prices, fastPeriod);
-
-        BigDecimal slowEma =
-                calculateEma(prices, slowPeriod);
+        BigDecimal fastEma = calculateEma(prices, fastPeriod);
+        BigDecimal slowEma = calculateEma(prices, slowPeriod);
 
         return fastEma
                 .subtract(slowEma)
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // MACD SIGNAL LINE
-    // =========================
 
     public BigDecimal calculateMacdSignalLine(
             List<BigDecimal> prices,
@@ -222,20 +140,11 @@ public class IndicatorService {
             int slowPeriod,
             int signalPeriod) {
 
-        validateMacdPeriods(
-                prices,
-                fastPeriod,
-                slowPeriod
-        );
-
+        validateMacdPeriods(prices, fastPeriod, slowPeriod);
         validateSignalPeriod(signalPeriod);
 
         List<BigDecimal> macdValues =
-                buildMacdSeries(
-                        prices,
-                        fastPeriod,
-                        slowPeriod
-                );
+                buildMacdSeries(prices, fastPeriod, slowPeriod);
 
         if (macdValues.size() < signalPeriod) {
             throw new IllegalArgumentException(
@@ -243,18 +152,9 @@ public class IndicatorService {
             );
         }
 
-        return calculateEma(
-                macdValues,
-                signalPeriod
-        ).setScale(
-                SCALE,
-                RoundingMode.HALF_UP
-        );
+        return calculateEma(macdValues, signalPeriod)
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // STOCHASTIC OSCILLATOR %D
-    // =========================
 
     public BigDecimal calculateStochasticPercentD(
             List<BigDecimal> highPrices,
@@ -266,7 +166,6 @@ public class IndicatorService {
         if (highPrices == null
                 || lowPrices == null
                 || closingPrices == null) {
-
             throw new IllegalArgumentException(
                     "Stochastic price lists cannot be null"
             );
@@ -280,7 +179,6 @@ public class IndicatorService {
 
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()) {
-
             throw new IllegalArgumentException(
                     "Stochastic price lists must have the same size"
             );
@@ -306,26 +204,17 @@ public class IndicatorService {
 
             List<BigDecimal> highWindow =
                     new ArrayList<>(
-                            highPrices.subList(
-                                    startIndex,
-                                    endIndex + 1
-                            )
+                            highPrices.subList(startIndex, endIndex + 1)
                     );
 
             List<BigDecimal> lowWindow =
                     new ArrayList<>(
-                            lowPrices.subList(
-                                    startIndex,
-                                    endIndex + 1
-                            )
+                            lowPrices.subList(startIndex, endIndex + 1)
                     );
 
             List<BigDecimal> closeWindow =
                     new ArrayList<>(
-                            closingPrices.subList(
-                                    startIndex,
-                                    endIndex + 1
-                            )
+                            closingPrices.subList(startIndex, endIndex + 1)
                     );
 
             BigDecimal percentK =
@@ -339,12 +228,8 @@ public class IndicatorService {
             percentKValues.add(percentK);
         }
 
-        BigDecimal sum =
-                percentKValues.stream()
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
+        BigDecimal sum = percentKValues.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return sum.divide(
                 BigDecimal.valueOf(dPeriod),
@@ -353,30 +238,17 @@ public class IndicatorService {
         );
     }
 
-    // =========================
-    // MACD HISTOGRAM
-    // =========================
-
     public BigDecimal calculateMacdHistogram(
             List<BigDecimal> prices,
             int fastPeriod,
             int slowPeriod,
             int signalPeriod) {
 
-        validateMacdPeriods(
-                prices,
-                fastPeriod,
-                slowPeriod
-        );
-
+        validateMacdPeriods(prices, fastPeriod, slowPeriod);
         validateSignalPeriod(signalPeriod);
 
         BigDecimal macdLine =
-                calculateMacd(
-                        prices,
-                        fastPeriod,
-                        slowPeriod
-                );
+                calculateMacd(prices, fastPeriod, slowPeriod);
 
         BigDecimal signalLine =
                 calculateMacdSignalLine(
@@ -388,30 +260,18 @@ public class IndicatorService {
 
         return macdLine
                 .subtract(signalLine)
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // BOLLINGER BANDS
-    // =========================
 
     public List<BigDecimal> calculateBollingerBands(
             List<BigDecimal> prices,
             int period,
             BigDecimal standardDeviationMultiplier) {
 
-        validatePricesAndPeriod(
-                prices,
-                period,
-                "Bollinger Bands"
-        );
+        validatePricesAndPeriod(prices, period, "Bollinger Bands");
 
         if (standardDeviationMultiplier == null
                 || standardDeviationMultiplier.compareTo(BigDecimal.ZERO) <= 0) {
-
             throw new IllegalArgumentException(
                     "Standard deviation multiplier must be greater than zero"
             );
@@ -420,32 +280,17 @@ public class IndicatorService {
         int startIndex = prices.size() - period;
 
         List<BigDecimal> recentPrices =
-                prices.subList(
-                        startIndex,
-                        prices.size()
-                );
+                prices.subList(startIndex, prices.size());
 
-        BigDecimal middleBand =
-                calculateSma(
-                        prices,
-                        period
-                );
+        BigDecimal middleBand = calculateSma(prices, period);
 
-        BigDecimal squaredDifferenceSum =
-                BigDecimal.ZERO;
+        BigDecimal squaredDifferenceSum = BigDecimal.ZERO;
 
         for (BigDecimal price : recentPrices) {
-
-            BigDecimal difference =
-                    price.subtract(middleBand);
-
-            BigDecimal squaredDifference =
-                    difference.multiply(difference);
-
+            BigDecimal difference = price.subtract(middleBand);
+            BigDecimal squaredDifference = difference.multiply(difference);
             squaredDifferenceSum =
-                    squaredDifferenceSum.add(
-                            squaredDifference
-                    );
+                    squaredDifferenceSum.add(squaredDifference);
         }
 
         BigDecimal variance =
@@ -457,45 +302,28 @@ public class IndicatorService {
 
         BigDecimal standardDeviation =
                 BigDecimal.valueOf(
-                        Math.sqrt(
-                                variance.doubleValue()
-                        )
+                        Math.sqrt(variance.doubleValue())
                 );
 
         BigDecimal bandDistance =
-                standardDeviation.multiply(
-                        standardDeviationMultiplier
-                );
+                standardDeviation.multiply(standardDeviationMultiplier);
 
         BigDecimal upperBand =
                 middleBand
                         .add(bandDistance)
-                        .setScale(
-                                SCALE,
-                                RoundingMode.HALF_UP
-                        );
+                        .setScale(SCALE, RoundingMode.HALF_UP);
 
         BigDecimal lowerBand =
                 middleBand
                         .subtract(bandDistance)
-                        .setScale(
-                                SCALE,
-                                RoundingMode.HALF_UP
-                        );
+                        .setScale(SCALE, RoundingMode.HALF_UP);
 
         return List.of(
-                middleBand.setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                ),
+                middleBand.setScale(SCALE, RoundingMode.HALF_UP),
                 upperBand,
                 lowerBand
         );
     }
-
-    // =========================
-    // AVERAGE TRUE RANGE (ATR)
-    // =========================
 
     public BigDecimal calculateAtr(
             List<BigDecimal> highPrices,
@@ -506,7 +334,6 @@ public class IndicatorService {
         if (highPrices == null
                 || lowPrices == null
                 || closingPrices == null) {
-
             throw new IllegalArgumentException(
                     "ATR price lists cannot be null"
             );
@@ -520,7 +347,6 @@ public class IndicatorService {
 
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()) {
-
             throw new IllegalArgumentException(
                     "ATR price lists must have the same size"
             );
@@ -532,19 +358,12 @@ public class IndicatorService {
             );
         }
 
-        List<BigDecimal> trueRanges =
-                new ArrayList<>();
+        List<BigDecimal> trueRanges = new ArrayList<>();
 
         for (int i = 1; i < highPrices.size(); i++) {
-
-            BigDecimal high =
-                    highPrices.get(i);
-
-            BigDecimal low =
-                    lowPrices.get(i);
-
-            BigDecimal previousClose =
-                    closingPrices.get(i - 1);
+            BigDecimal high = highPrices.get(i);
+            BigDecimal low = lowPrices.get(i);
+            BigDecimal previousClose = closingPrices.get(i - 1);
 
             BigDecimal highLow =
                     high.subtract(low).abs();
@@ -557,27 +376,18 @@ public class IndicatorService {
 
             BigDecimal trueRange =
                     highLow.max(
-                            highPreviousClose.max(
-                                    lowPreviousClose
-                            )
+                            highPreviousClose.max(lowPreviousClose)
                     );
 
             trueRanges.add(trueRange);
         }
 
-        int startIndex =
-                trueRanges.size() - period;
+        int startIndex = trueRanges.size() - period;
 
         BigDecimal sum = trueRanges
-                .subList(
-                        startIndex,
-                        trueRanges.size()
-                )
+                .subList(startIndex, trueRanges.size())
                 .stream()
-                .reduce(
-                        BigDecimal.ZERO,
-                        BigDecimal::add
-                );
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return sum.divide(
                 BigDecimal.valueOf(period),
@@ -585,10 +395,6 @@ public class IndicatorService {
                 RoundingMode.HALF_UP
         );
     }
-
-    // =========================
-    // STOCHASTIC OSCILLATOR %K
-    // =========================
 
     public BigDecimal calculateStochasticPercentK(
             List<BigDecimal> highPrices,
@@ -599,7 +405,6 @@ public class IndicatorService {
         if (highPrices == null
                 || lowPrices == null
                 || closingPrices == null) {
-
             throw new IllegalArgumentException(
                     "Stochastic price lists cannot be null"
             );
@@ -613,7 +418,6 @@ public class IndicatorService {
 
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()) {
-
             throw new IllegalArgumentException(
                     "Stochastic price lists must have the same size"
             );
@@ -627,31 +431,22 @@ public class IndicatorService {
 
         int startIndex = highPrices.size() - period;
 
-        BigDecimal highestHigh =
-                highPrices.get(startIndex);
-
-        BigDecimal lowestLow =
-                lowPrices.get(startIndex);
+        BigDecimal highestHigh = highPrices.get(startIndex);
+        BigDecimal lowestLow = lowPrices.get(startIndex);
 
         for (int i = startIndex + 1;
              i < highPrices.size();
              i++) {
 
             highestHigh =
-                    highestHigh.max(
-                            highPrices.get(i)
-                    );
+                    highestHigh.max(highPrices.get(i));
 
             lowestLow =
-                    lowestLow.min(
-                            lowPrices.get(i)
-                    );
+                    lowestLow.min(lowPrices.get(i));
         }
 
         BigDecimal currentClose =
-                closingPrices.get(
-                        closingPrices.size() - 1
-                );
+                closingPrices.get(closingPrices.size() - 1);
 
         BigDecimal range =
                 highestHigh.subtract(lowestLow);
@@ -670,18 +465,12 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .multiply(
-                        BigDecimal.valueOf(100)
-                )
+                .multiply(BigDecimal.valueOf(100))
                 .setScale(
                         SCALE,
                         RoundingMode.HALF_UP
                 );
     }
-
-    // =========================
-    // AVERAGE DIRECTIONAL INDEX (ADX)
-    // =========================
 
     public BigDecimal calculateAdx(
             List<BigDecimal> highPrices,
@@ -730,13 +519,10 @@ public class IndicatorService {
 
                 BigDecimal trueRange =
                         highLow.max(
-                                highPreviousClose.max(
-                                        lowPreviousClose
-                                )
+                                highPreviousClose.max(lowPreviousClose)
                         );
 
-                trueRangeSum =
-                        trueRangeSum.add(trueRange);
+                trueRangeSum = trueRangeSum.add(trueRange);
 
                 BigDecimal upwardMove =
                         currentHigh.subtract(previousHigh);
@@ -801,14 +587,11 @@ public class IndicatorService {
             BigDecimal dx;
 
             if (directionalIndexSum.compareTo(BigDecimal.ZERO) == 0) {
-
                 dx = BigDecimal.ZERO.setScale(
                         SCALE,
                         RoundingMode.HALF_UP
                 );
-
             } else {
-
                 dx = positiveDi
                         .subtract(negativeDi)
                         .abs()
@@ -837,15 +620,9 @@ public class IndicatorService {
 
         BigDecimal dxSum =
                 dxValues
-                        .subList(
-                                startIndex,
-                                dxValues.size()
-                        )
+                        .subList(startIndex, dxValues.size())
                         .stream()
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return dxSum.divide(
                 BigDecimal.valueOf(valuesToAverage),
@@ -853,10 +630,6 @@ public class IndicatorService {
                 RoundingMode.HALF_UP
         );
     }
-
-    // =========================
-    // POSITIVE DIRECTIONAL INDICATOR (+DI)
-    // =========================
 
     public BigDecimal calculatePositiveDi(
             List<BigDecimal> highPrices,
@@ -898,13 +671,10 @@ public class IndicatorService {
 
             BigDecimal trueRange =
                     highLow.max(
-                            highPreviousClose.max(
-                                    lowPreviousClose
-                            )
+                            highPreviousClose.max(lowPreviousClose)
                     );
 
-            trueRangeSum =
-                    trueRangeSum.add(trueRange);
+            trueRangeSum = trueRangeSum.add(trueRange);
 
             BigDecimal upwardMove =
                     currentHigh.subtract(previousHigh);
@@ -914,11 +684,8 @@ public class IndicatorService {
 
             if (upwardMove.compareTo(downwardMove) > 0
                     && upwardMove.compareTo(BigDecimal.ZERO) > 0) {
-
                 positiveDirectionalMovementSum =
-                        positiveDirectionalMovementSum.add(
-                                upwardMove
-                        );
+                        positiveDirectionalMovementSum.add(upwardMove);
             }
         }
 
@@ -937,10 +704,6 @@ public class IndicatorService {
                         RoundingMode.HALF_UP
                 );
     }
-
-    // =========================
-    // NEGATIVE DIRECTIONAL INDICATOR (-DI)
-    // =========================
 
     public BigDecimal calculateNegativeDi(
             List<BigDecimal> highPrices,
@@ -982,9 +745,7 @@ public class IndicatorService {
 
             BigDecimal trueRange =
                     highLow.max(
-                            highPreviousClose.max(
-                                    lowPreviousClose
-                            )
+                            highPreviousClose.max(lowPreviousClose)
                     );
 
             trueRangeSum =
@@ -998,11 +759,8 @@ public class IndicatorService {
 
             if (downwardMove.compareTo(upwardMove) > 0
                     && downwardMove.compareTo(BigDecimal.ZERO) > 0) {
-
                 negativeDirectionalMovementSum =
-                        negativeDirectionalMovementSum.add(
-                                downwardMove
-                        );
+                        negativeDirectionalMovementSum.add(downwardMove);
             }
         }
 
@@ -1022,10 +780,6 @@ public class IndicatorService {
                 );
     }
 
-    // =========================
-    // COMMODITY CHANNEL INDEX (CCI)
-    // =========================
-
     public BigDecimal calculateCci(
             List<BigDecimal> highPrices,
             List<BigDecimal> lowPrices,
@@ -1035,7 +789,6 @@ public class IndicatorService {
         if (highPrices == null
                 || lowPrices == null
                 || closingPrices == null) {
-
             throw new IllegalArgumentException(
                     "CCI price lists cannot be null"
             );
@@ -1049,7 +802,6 @@ public class IndicatorService {
 
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()) {
-
             throw new IllegalArgumentException(
                     "CCI price lists must have the same size"
             );
@@ -1084,10 +836,7 @@ public class IndicatorService {
 
         BigDecimal typicalPriceSum =
                 typicalPrices.stream()
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal typicalPriceSma =
                 typicalPriceSum.divide(
@@ -1096,11 +845,9 @@ public class IndicatorService {
                         RoundingMode.HALF_UP
                 );
 
-        BigDecimal meanDeviationSum =
-                BigDecimal.ZERO;
+        BigDecimal meanDeviationSum = BigDecimal.ZERO;
 
         for (BigDecimal typicalPrice : typicalPrices) {
-
             meanDeviationSum =
                     meanDeviationSum.add(
                             typicalPrice
@@ -1124,9 +871,7 @@ public class IndicatorService {
         }
 
         BigDecimal currentTypicalPrice =
-                typicalPrices.get(
-                        typicalPrices.size() - 1
-                );
+                typicalPrices.get(typicalPrices.size() - 1);
 
         BigDecimal constant =
                 new BigDecimal("0.015");
@@ -1138,15 +883,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // WILLIAMS PERCENT R
-    // =========================
 
     public BigDecimal calculateWilliamsPercentR(
             List<BigDecimal> highPrices,
@@ -1157,7 +895,6 @@ public class IndicatorService {
         if (highPrices == null
                 || lowPrices == null
                 || closingPrices == null) {
-
             throw new IllegalArgumentException(
                     "Williams Percent R price lists cannot be null"
             );
@@ -1171,7 +908,6 @@ public class IndicatorService {
 
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()) {
-
             throw new IllegalArgumentException(
                     "Williams Percent R price lists must have the same size"
             );
@@ -1185,31 +921,20 @@ public class IndicatorService {
 
         int startIndex = highPrices.size() - period;
 
-        BigDecimal highestHigh =
-                highPrices.get(startIndex);
-
-        BigDecimal lowestLow =
-                lowPrices.get(startIndex);
+        BigDecimal highestHigh = highPrices.get(startIndex);
+        BigDecimal lowestLow = lowPrices.get(startIndex);
 
         for (int i = startIndex + 1;
              i < highPrices.size();
              i++) {
-
             highestHigh =
-                    highestHigh.max(
-                            highPrices.get(i)
-                    );
-
+                    highestHigh.max(highPrices.get(i));
             lowestLow =
-                    lowestLow.min(
-                            lowPrices.get(i)
-                    );
+                    lowestLow.min(lowPrices.get(i));
         }
 
         BigDecimal currentClose =
-                closingPrices.get(
-                        closingPrices.size() - 1
-                );
+                closingPrices.get(closingPrices.size() - 1);
 
         BigDecimal range =
                 highestHigh.subtract(lowestLow);
@@ -1228,18 +953,9 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .multiply(
-                        BigDecimal.valueOf(-100)
-                )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .multiply(BigDecimal.valueOf(-100))
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // RATE OF CHANGE (ROC)
-    // =========================
 
     public BigDecimal calculateRoc(
             List<BigDecimal> prices,
@@ -1282,18 +998,9 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .multiply(
-                        BigDecimal.valueOf(100)
-                )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // MONEY FLOW INDEX (MFI)
-    // =========================
 
     public BigDecimal calculateMfi(
             List<BigDecimal> highPrices,
@@ -1306,7 +1013,6 @@ public class IndicatorService {
                 || lowPrices == null
                 || closingPrices == null
                 || volumes == null) {
-
             throw new IllegalArgumentException(
                     "MFI price and volume lists cannot be null"
             );
@@ -1321,7 +1027,6 @@ public class IndicatorService {
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()
                 || highPrices.size() != volumes.size()) {
-
             throw new IllegalArgumentException(
                     "MFI price and volume lists must have the same size"
             );
@@ -1336,11 +1041,8 @@ public class IndicatorService {
         int startIndex =
                 highPrices.size() - period;
 
-        BigDecimal positiveMoneyFlow =
-                BigDecimal.ZERO;
-
-        BigDecimal negativeMoneyFlow =
-                BigDecimal.ZERO;
+        BigDecimal positiveMoneyFlow = BigDecimal.ZERO;
+        BigDecimal negativeMoneyFlow = BigDecimal.ZERO;
 
         for (int i = startIndex;
              i < highPrices.size();
@@ -1367,41 +1069,25 @@ public class IndicatorService {
                             );
 
             BigDecimal rawMoneyFlow =
-                    currentTypicalPrice.multiply(
-                            volumes.get(i)
-                    );
+                    currentTypicalPrice.multiply(volumes.get(i));
 
             if (currentTypicalPrice.compareTo(previousTypicalPrice) > 0) {
-
                 positiveMoneyFlow =
-                        positiveMoneyFlow.add(
-                                rawMoneyFlow
-                        );
-
+                        positiveMoneyFlow.add(rawMoneyFlow);
             } else if (currentTypicalPrice.compareTo(previousTypicalPrice) < 0) {
-
                 negativeMoneyFlow =
-                        negativeMoneyFlow.add(
-                                rawMoneyFlow
-                        );
+                        negativeMoneyFlow.add(rawMoneyFlow);
             }
         }
 
         if (negativeMoneyFlow.compareTo(BigDecimal.ZERO) == 0) {
-
             if (positiveMoneyFlow.compareTo(BigDecimal.ZERO) == 0) {
                 return BigDecimal.valueOf(50)
-                        .setScale(
-                                SCALE,
-                                RoundingMode.HALF_UP
-                        );
+                        .setScale(SCALE, RoundingMode.HALF_UP);
             }
 
             return BigDecimal.valueOf(100)
-                    .setScale(
-                            SCALE,
-                            RoundingMode.HALF_UP
-                    );
+                    .setScale(SCALE, RoundingMode.HALF_UP);
         }
 
         if (positiveMoneyFlow.compareTo(BigDecimal.ZERO) == 0) {
@@ -1422,22 +1108,13 @@ public class IndicatorService {
                 .subtract(
                         BigDecimal.valueOf(100)
                                 .divide(
-                                        BigDecimal.ONE.add(
-                                                moneyFlowRatio
-                                        ),
+                                        BigDecimal.ONE.add(moneyFlowRatio),
                                         SCALE,
                                         RoundingMode.HALF_UP
                                 )
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // ON-BALANCE VOLUME (OBV)
-    // =========================
 
     public BigDecimal calculateObv(
             List<BigDecimal> closingPrices,
@@ -1464,35 +1141,19 @@ public class IndicatorService {
         BigDecimal obv = BigDecimal.ZERO;
 
         for (int i = 1; i < closingPrices.size(); i++) {
-
-            BigDecimal currentClose =
-                    closingPrices.get(i);
-
-            BigDecimal previousClose =
-                    closingPrices.get(i - 1);
-
-            BigDecimal currentVolume =
-                    volumes.get(i);
+            BigDecimal currentClose = closingPrices.get(i);
+            BigDecimal previousClose = closingPrices.get(i - 1);
+            BigDecimal currentVolume = volumes.get(i);
 
             if (currentClose.compareTo(previousClose) > 0) {
-
                 obv = obv.add(currentVolume);
-
             } else if (currentClose.compareTo(previousClose) < 0) {
-
                 obv = obv.subtract(currentVolume);
             }
         }
 
-        return obv.setScale(
-                SCALE,
-                RoundingMode.HALF_UP
-        );
+        return obv.setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // CHAIKIN MONEY FLOW (CMF)
-    // =========================
 
     public BigDecimal calculateCmf(
             List<BigDecimal> highPrices,
@@ -1505,7 +1166,6 @@ public class IndicatorService {
                 || lowPrices == null
                 || closingPrices == null
                 || volumes == null) {
-
             throw new IllegalArgumentException(
                     "CMF price and volume lists cannot be null"
             );
@@ -1520,7 +1180,6 @@ public class IndicatorService {
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()
                 || highPrices.size() != volumes.size()) {
-
             throw new IllegalArgumentException(
                     "CMF price and volume lists must have the same size"
             );
@@ -1551,11 +1210,8 @@ public class IndicatorService {
             BigDecimal moneyFlowMultiplier;
 
             if (range.compareTo(BigDecimal.ZERO) == 0) {
-
                 moneyFlowMultiplier = BigDecimal.ZERO;
-
             } else {
-
                 moneyFlowMultiplier = close
                         .subtract(low)
                         .subtract(high.subtract(close))
@@ -1570,9 +1226,7 @@ public class IndicatorService {
                     moneyFlowMultiplier.multiply(volume);
 
             moneyFlowVolumeSum =
-                    moneyFlowVolumeSum.add(
-                            moneyFlowVolume
-                    );
+                    moneyFlowVolumeSum.add(moneyFlowVolume);
 
             volumeSum =
                     volumeSum.add(volume);
@@ -1591,15 +1245,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // ACCUMULATION/DISTRIBUTION LINE (A/D LINE)
-    // =========================
 
     public BigDecimal calculateAccumulationDistributionLine(
             List<BigDecimal> highPrices,
@@ -1611,7 +1258,6 @@ public class IndicatorService {
                 || lowPrices == null
                 || closingPrices == null
                 || volumes == null) {
-
             throw new IllegalArgumentException(
                     "Accumulation Distribution Line price and volume lists cannot be null"
             );
@@ -1626,16 +1272,15 @@ public class IndicatorService {
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()
                 || highPrices.size() != volumes.size()) {
-
             throw new IllegalArgumentException(
                     "Accumulation Distribution Line price and volume lists must have the same size"
             );
         }
 
-        BigDecimal accumulationDistributionLine = BigDecimal.ZERO;
+        BigDecimal accumulationDistributionLine =
+                BigDecimal.ZERO;
 
         for (int i = 0; i < highPrices.size(); i++) {
-
             BigDecimal high = highPrices.get(i);
             BigDecimal low = lowPrices.get(i);
             BigDecimal close = closingPrices.get(i);
@@ -1646,11 +1291,8 @@ public class IndicatorService {
             BigDecimal moneyFlowMultiplier;
 
             if (range.compareTo(BigDecimal.ZERO) == 0) {
-
                 moneyFlowMultiplier = BigDecimal.ZERO;
-
             } else {
-
                 moneyFlowMultiplier = close
                         .subtract(low)
                         .subtract(high.subtract(close))
@@ -1670,15 +1312,9 @@ public class IndicatorService {
                     );
         }
 
-        return accumulationDistributionLine.setScale(
-                SCALE,
-                RoundingMode.HALF_UP
-        );
+        return accumulationDistributionLine
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // VOLUME WEIGHTED AVERAGE PRICE (VWAP)
-    // =========================
 
     public BigDecimal calculateVwap(
             List<BigDecimal> highPrices,
@@ -1690,7 +1326,6 @@ public class IndicatorService {
                 || lowPrices == null
                 || closingPrices == null
                 || volumes == null) {
-
             throw new IllegalArgumentException(
                     "VWAP price and volume lists cannot be null"
             );
@@ -1705,7 +1340,6 @@ public class IndicatorService {
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()
                 || highPrices.size() != volumes.size()) {
-
             throw new IllegalArgumentException(
                     "VWAP price and volume lists must have the same size"
             );
@@ -1718,18 +1352,10 @@ public class IndicatorService {
                 BigDecimal.ZERO;
 
         for (int i = 0; i < highPrices.size(); i++) {
-
-            BigDecimal high =
-                    highPrices.get(i);
-
-            BigDecimal low =
-                    lowPrices.get(i);
-
-            BigDecimal close =
-                    closingPrices.get(i);
-
-            BigDecimal volume =
-                    volumes.get(i);
+            BigDecimal high = highPrices.get(i);
+            BigDecimal low = lowPrices.get(i);
+            BigDecimal close = closingPrices.get(i);
+            BigDecimal volume = volumes.get(i);
 
             BigDecimal typicalPrice =
                     high
@@ -1766,15 +1392,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // AVERAGE VOLUME
-    // =========================
 
     public BigDecimal calculateAverageVolume(
             List<BigDecimal> volumes,
@@ -1801,15 +1420,9 @@ public class IndicatorService {
         int startIndex = volumes.size() - period;
 
         BigDecimal volumeSum = volumes
-                .subList(
-                        startIndex,
-                        volumes.size()
-                )
+                .subList(startIndex, volumes.size())
                 .stream()
-                .reduce(
-                        BigDecimal.ZERO,
-                        BigDecimal::add
-                );
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return volumeSum
                 .divide(
@@ -1817,15 +1430,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // PARABOLIC SAR
-    // =========================
 
     public BigDecimal calculateParabolicSar(
             List<BigDecimal> highPrices,
@@ -1853,7 +1459,6 @@ public class IndicatorService {
 
         if (initialAccelerationFactor == null
                 || initialAccelerationFactor.compareTo(BigDecimal.ZERO) <= 0) {
-
             throw new IllegalArgumentException(
                     "Parabolic SAR initial acceleration factor must be greater than zero"
             );
@@ -1861,7 +1466,6 @@ public class IndicatorService {
 
         if (maximumAccelerationFactor == null
                 || maximumAccelerationFactor.compareTo(BigDecimal.ZERO) <= 0) {
-
             throw new IllegalArgumentException(
                     "Parabolic SAR maximum acceleration factor must be greater than zero"
             );
@@ -1883,29 +1487,19 @@ public class IndicatorService {
         BigDecimal extremePoint;
 
         if (upTrend) {
-
             sar = lowPrices.get(0);
-
             extremePoint =
-                    highPrices.get(0).max(
-                            highPrices.get(1)
-                    );
-
+                    highPrices.get(0).max(highPrices.get(1));
         } else {
-
             sar = highPrices.get(0);
-
             extremePoint =
-                    lowPrices.get(0).min(
-                            lowPrices.get(1)
-                    );
+                    lowPrices.get(0).min(lowPrices.get(1));
         }
 
         BigDecimal accelerationFactor =
                 initialAccelerationFactor;
 
         for (int i = 1; i < highPrices.size(); i++) {
-
             BigDecimal currentHigh =
                     highPrices.get(i);
 
@@ -1920,95 +1514,61 @@ public class IndicatorService {
                     );
 
             if (upTrend) {
-
                 if (i >= 1) {
                     nextSar =
-                            nextSar.min(
-                                    lowPrices.get(i - 1)
-                            );
+                            nextSar.min(lowPrices.get(i - 1));
                 }
 
                 if (i >= 2) {
                     nextSar =
-                            nextSar.min(
-                                    lowPrices.get(i - 2)
-                            );
+                            nextSar.min(lowPrices.get(i - 2));
                 }
 
                 if (currentLow.compareTo(nextSar) < 0) {
-
                     upTrend = false;
-
-                    nextSar =
-                            extremePoint;
-
-                    extremePoint =
-                            currentLow;
-
+                    nextSar = extremePoint;
+                    extremePoint = currentLow;
                     accelerationFactor =
                             initialAccelerationFactor;
-
                 } else if (currentHigh.compareTo(extremePoint) > 0) {
-
-                    extremePoint =
-                            currentHigh;
+                    extremePoint = currentHigh;
 
                     accelerationFactor =
                             accelerationFactor
                                     .add(accelerationStep)
-                                    .min(
-                                            maximumAccelerationFactor
-                                    );
+                                    .min(maximumAccelerationFactor);
                 }
-
             } else {
-
                 if (i >= 1) {
                     nextSar =
-                            nextSar.max(
-                                    highPrices.get(i - 1)
-                            );
+                            nextSar.max(highPrices.get(i - 1));
                 }
 
                 if (i >= 2) {
                     nextSar =
-                            nextSar.max(
-                                    highPrices.get(i - 2)
-                            );
+                            nextSar.max(highPrices.get(i - 2));
                 }
 
                 if (currentHigh.compareTo(nextSar) > 0) {
-
                     upTrend = true;
-
-                    nextSar =
-                            extremePoint;
-
-                    extremePoint =
-                            currentHigh;
-
+                    nextSar = extremePoint;
+                    extremePoint = currentHigh;
                     accelerationFactor =
                             initialAccelerationFactor;
-
                 } else if (currentLow.compareTo(extremePoint) < 0) {
-
-                    extremePoint =
-                            currentLow;
+                    extremePoint = currentLow;
 
                     accelerationFactor =
                             accelerationFactor
                                     .add(accelerationStep)
-                                    .min(
-                                            maximumAccelerationFactor
-                                    );
+                                    .min(maximumAccelerationFactor);
                 }
             }
 
-            sar =
-                    nextSar.setScale(
-                            SCALE,
-                            RoundingMode.HALF_UP
-                    );
+            sar = nextSar.setScale(
+                    SCALE,
+                    RoundingMode.HALF_UP
+            );
         }
 
         return sar.setScale(
@@ -2016,10 +1576,6 @@ public class IndicatorService {
                 RoundingMode.HALF_UP
         );
     }
-
-    // =========================
-    // ICHIMOKU TENKAN-SEN
-    // =========================
 
     public BigDecimal calculateIchimokuTenkanSen(
             List<BigDecimal> highPrices,
@@ -2063,14 +1619,10 @@ public class IndicatorService {
              i++) {
 
             highestHigh =
-                    highestHigh.max(
-                            highPrices.get(i)
-                    );
+                    highestHigh.max(highPrices.get(i));
 
             lowestLow =
-                    lowestLow.min(
-                            lowPrices.get(i)
-                    );
+                    lowestLow.min(lowPrices.get(i));
         }
 
         return highestHigh
@@ -2080,15 +1632,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // ICHIMOKU KIJUN-SEN
-    // =========================
 
     public BigDecimal calculateIchimokuKijunSen(
             List<BigDecimal> highPrices,
@@ -2132,14 +1677,10 @@ public class IndicatorService {
              i++) {
 
             highestHigh =
-                    highestHigh.max(
-                            highPrices.get(i)
-                    );
+                    highestHigh.max(highPrices.get(i));
 
             lowestLow =
-                    lowestLow.min(
-                            lowPrices.get(i)
-                    );
+                    lowestLow.min(lowPrices.get(i));
         }
 
         return highestHigh
@@ -2149,15 +1690,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // ICHIMOKU SENKOU SPAN A
-    // =========================
 
     public BigDecimal calculateIchimokuSenkouSpanA(
             List<BigDecimal> highPrices,
@@ -2183,10 +1717,8 @@ public class IndicatorService {
             );
         }
 
-        int requiredPrices = Math.max(
-                tenkanPeriod,
-                kijunPeriod
-        );
+        int requiredPrices =
+                Math.max(tenkanPeriod, kijunPeriod);
 
         if (highPrices.size() < requiredPrices) {
             throw new IllegalArgumentException(
@@ -2215,15 +1747,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // ICHIMOKU SENKOU SPAN B
-    // =========================
 
     public BigDecimal calculateIchimokuSenkouSpanB(
             List<BigDecimal> highPrices,
@@ -2267,14 +1792,10 @@ public class IndicatorService {
              i++) {
 
             highestHigh =
-                    highestHigh.max(
-                            highPrices.get(i)
-                    );
+                    highestHigh.max(highPrices.get(i));
 
             lowestLow =
-                    lowestLow.min(
-                            lowPrices.get(i)
-                    );
+                    lowestLow.min(lowPrices.get(i));
         }
 
         return highestHigh
@@ -2284,15 +1805,8 @@ public class IndicatorService {
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // ICHIMOKU CHIKOU SPAN
-    // =========================
 
     public BigDecimal calculateIchimokuChikouSpan(
             List<BigDecimal> closingPrices) {
@@ -2305,15 +1819,8 @@ public class IndicatorService {
 
         return closingPrices
                 .get(closingPrices.size() - 1)
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // AROON UP
-    // =========================
 
     public BigDecimal calculateAroonUp(
             List<BigDecimal> highPrices,
@@ -2337,9 +1844,11 @@ public class IndicatorService {
             );
         }
 
-        int startIndex = highPrices.size() - period;
+        int startIndex =
+                highPrices.size() - period;
 
-        int highestHighIndex = startIndex;
+        int highestHighIndex =
+                startIndex;
 
         BigDecimal highestHigh =
                 highPrices.get(startIndex);
@@ -2349,10 +1858,7 @@ public class IndicatorService {
              i++) {
 
             if (highPrices.get(i).compareTo(highestHigh) >= 0) {
-
-                highestHigh =
-                        highPrices.get(i);
-
+                highestHigh = highPrices.get(i);
                 highestHighIndex = i;
             }
         }
@@ -2363,23 +1869,14 @@ public class IndicatorService {
         return BigDecimal.valueOf(
                         period - periodsSinceHighestHigh
                 )
-                .multiply(
-                        BigDecimal.valueOf(100)
-                )
+                .multiply(BigDecimal.valueOf(100))
                 .divide(
                         BigDecimal.valueOf(period),
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // AROON DOWN
-    // =========================
 
     public BigDecimal calculateAroonDown(
             List<BigDecimal> lowPrices,
@@ -2403,9 +1900,11 @@ public class IndicatorService {
             );
         }
 
-        int startIndex = lowPrices.size() - period;
+        int startIndex =
+                lowPrices.size() - period;
 
-        int lowestLowIndex = startIndex;
+        int lowestLowIndex =
+                startIndex;
 
         BigDecimal lowestLow =
                 lowPrices.get(startIndex);
@@ -2415,10 +1914,7 @@ public class IndicatorService {
              i++) {
 
             if (lowPrices.get(i).compareTo(lowestLow) <= 0) {
-
-                lowestLow =
-                        lowPrices.get(i);
-
+                lowestLow = lowPrices.get(i);
                 lowestLowIndex = i;
             }
         }
@@ -2429,23 +1925,14 @@ public class IndicatorService {
         return BigDecimal.valueOf(
                         period - periodsSinceLowestLow
                 )
-                .multiply(
-                        BigDecimal.valueOf(100)
-                )
+                .multiply(BigDecimal.valueOf(100))
                 .divide(
                         BigDecimal.valueOf(period),
                         SCALE,
                         RoundingMode.HALF_UP
                 )
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // AROON OSCILLATOR
-    // =========================
 
     public BigDecimal calculateAroonOscillator(
             List<BigDecimal> highPrices,
@@ -2477,28 +1964,15 @@ public class IndicatorService {
         }
 
         BigDecimal aroonUp =
-                calculateAroonUp(
-                        highPrices,
-                        period
-                );
+                calculateAroonUp(highPrices, period);
 
         BigDecimal aroonDown =
-                calculateAroonDown(
-                        lowPrices,
-                        period
-                );
+                calculateAroonDown(lowPrices, period);
 
         return aroonUp
                 .subtract(aroonDown)
-                .setScale(
-                        SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
-
-    // =========================
-    // BULL FLAG PATTERN
-    // =========================
 
     public boolean detectBullFlag(
             List<BigDecimal> closingPrices) {
@@ -2557,20 +2031,15 @@ public class IndicatorService {
                                     SCALE,
                                     RoundingMode.HALF_UP
                             )
-                            .multiply(
-                                    BigDecimal.valueOf(100)
-                            );
+                            .multiply(BigDecimal.valueOf(100));
 
-            if (poleGainPercent.compareTo(
-                    BigDecimal.valueOf(5)
-            ) < 0) {
+            if (poleGainPercent.compareTo(BigDecimal.valueOf(5)) < 0) {
                 continue;
             }
 
             boolean poleMostlyRising = true;
 
             for (int i = 1; i <= peakIndex; i++) {
-
                 if (closingPrices.get(i).compareTo(
                         closingPrices.get(i - 1)
                 ) < 0) {
@@ -2610,9 +2079,7 @@ public class IndicatorService {
                  i++) {
 
                 if (closingPrices.get(i).compareTo(pullbackLow) < 0) {
-                    pullbackLow =
-                            closingPrices.get(i);
-
+                    pullbackLow = closingPrices.get(i);
                     pullbackLowIndex = i;
                 }
             }
@@ -2624,9 +2091,7 @@ public class IndicatorService {
                     polePeak.subtract(pullbackLow);
 
             BigDecimal maximumPullbackDepth =
-                    poleHeight.multiply(
-                            new BigDecimal("0.50")
-                    );
+                    poleHeight.multiply(new BigDecimal("0.50"));
 
             if (pullbackDepth.compareTo(BigDecimal.ZERO) <= 0
                     || pullbackDepth.compareTo(maximumPullbackDepth) > 0) {
@@ -2664,10 +2129,6 @@ public class IndicatorService {
 
         return false;
     }
-
-    // =========================
-    // BEAR FLAG PATTERN
-    // =========================
 
     public boolean detectBearFlag(
             List<BigDecimal> closingPrices) {
@@ -2726,20 +2187,15 @@ public class IndicatorService {
                                     SCALE,
                                     RoundingMode.HALF_UP
                             )
-                            .multiply(
-                                    BigDecimal.valueOf(100)
-                            );
+                            .multiply(BigDecimal.valueOf(100));
 
-            if (poleDeclinePercent.compareTo(
-                    BigDecimal.valueOf(5)
-            ) < 0) {
+            if (poleDeclinePercent.compareTo(BigDecimal.valueOf(5)) < 0) {
                 continue;
             }
 
             boolean poleMostlyFalling = true;
 
             for (int i = 1; i <= troughIndex; i++) {
-
                 if (closingPrices.get(i).compareTo(
                         closingPrices.get(i - 1)
                 ) > 0) {
@@ -2779,9 +2235,7 @@ public class IndicatorService {
                  i++) {
 
                 if (closingPrices.get(i).compareTo(reboundHigh) > 0) {
-                    reboundHigh =
-                            closingPrices.get(i);
-
+                    reboundHigh = closingPrices.get(i);
                     reboundHighIndex = i;
                 }
             }
@@ -2793,9 +2247,7 @@ public class IndicatorService {
                     reboundHigh.subtract(poleTrough);
 
             BigDecimal maximumReboundDepth =
-                    poleHeight.multiply(
-                            new BigDecimal("0.50")
-                    );
+                    poleHeight.multiply(new BigDecimal("0.50"));
 
             if (reboundDepth.compareTo(BigDecimal.ZERO) <= 0
                     || reboundDepth.compareTo(maximumReboundDepth) > 0) {
@@ -2833,10 +2285,6 @@ public class IndicatorService {
 
         return false;
     }
-
-    // =========================
-    // BULLISH BREAKOUT
-    // =========================
 
     public boolean detectBullishBreakout(
             List<BigDecimal> closingPrices) {
@@ -2876,9 +2324,7 @@ public class IndicatorService {
              i++) {
 
             previousResistance =
-                    previousResistance.max(
-                            closingPrices.get(i)
-                    );
+                    previousResistance.max(closingPrices.get(i));
         }
 
         if (currentPrice.compareTo(previousResistance) <= 0) {
@@ -2893,18 +2339,10 @@ public class IndicatorService {
                                 SCALE,
                                 RoundingMode.HALF_UP
                         )
-                        .multiply(
-                                BigDecimal.valueOf(100)
-                        );
+                        .multiply(BigDecimal.valueOf(100));
 
-        return breakoutPercent.compareTo(
-                BigDecimal.ONE
-        ) >= 0;
+        return breakoutPercent.compareTo(BigDecimal.ONE) >= 0;
     }
-
-    // =========================
-    // BEARISH BREAKDOWN
-    // =========================
 
     public boolean detectBearishBreakdown(
             List<BigDecimal> closingPrices) {
@@ -2920,7 +2358,6 @@ public class IndicatorService {
         }
 
         for (BigDecimal price : closingPrices) {
-
             if (price == null) {
                 throw new IllegalArgumentException(
                         "Bearish Breakdown closing prices cannot contain null values"
@@ -2945,9 +2382,7 @@ public class IndicatorService {
              i++) {
 
             previousSupport =
-                    previousSupport.min(
-                            closingPrices.get(i)
-                    );
+                    previousSupport.min(closingPrices.get(i));
         }
 
         if (currentPrice.compareTo(previousSupport) >= 0) {
@@ -2962,18 +2397,10 @@ public class IndicatorService {
                                 SCALE,
                                 RoundingMode.HALF_UP
                         )
-                        .multiply(
-                                BigDecimal.valueOf(100)
-                        );
+                        .multiply(BigDecimal.valueOf(100));
 
-        return breakdownPercent.compareTo(
-                BigDecimal.ONE
-        ) >= 0;
+        return breakdownPercent.compareTo(BigDecimal.ONE) >= 0;
     }
-
-    // =========================
-    // DOUBLE TOP PATTERN
-    // =========================
 
     public boolean detectDoubleTop(
             List<BigDecimal> closingPrices) {
@@ -2989,7 +2416,6 @@ public class IndicatorService {
         }
 
         for (BigDecimal price : closingPrices) {
-
             if (price == null) {
                 throw new IllegalArgumentException(
                         "Double Top closing prices cannot contain null values"
@@ -3053,9 +2479,7 @@ public class IndicatorService {
                                         SCALE,
                                         RoundingMode.HALF_UP
                                 )
-                                .multiply(
-                                        BigDecimal.valueOf(100)
-                                );
+                                .multiply(BigDecimal.valueOf(100));
 
                 if (peakDifferencePercent.compareTo(
                         new BigDecimal("1.50")
@@ -3069,11 +2493,8 @@ public class IndicatorService {
                 for (int i = firstPeakIndex + 2;
                      i < secondPeakIndex;
                      i++) {
-
                     valley =
-                            valley.min(
-                                    closingPrices.get(i)
-                            );
+                            valley.min(closingPrices.get(i));
                 }
 
                 BigDecimal averagePeak =
@@ -3093,9 +2514,7 @@ public class IndicatorService {
                                         SCALE,
                                         RoundingMode.HALF_UP
                                 )
-                                .multiply(
-                                        BigDecimal.valueOf(100)
-                                );
+                                .multiply(BigDecimal.valueOf(100));
 
                 if (valleyDepthPercent.compareTo(
                         BigDecimal.valueOf(2)
@@ -3124,10 +2543,6 @@ public class IndicatorService {
         return false;
     }
 
-    // =========================
-    // DOUBLE BOTTOM PATTERN
-    // =========================
-
     public boolean detectDoubleBottom(
             List<BigDecimal> closingPrices) {
 
@@ -3142,7 +2557,6 @@ public class IndicatorService {
         }
 
         for (BigDecimal price : closingPrices) {
-
             if (price == null) {
                 throw new IllegalArgumentException(
                         "Double Bottom closing prices cannot contain null values"
@@ -3206,9 +2620,7 @@ public class IndicatorService {
                                         SCALE,
                                         RoundingMode.HALF_UP
                                 )
-                                .multiply(
-                                        BigDecimal.valueOf(100)
-                                );
+                                .multiply(BigDecimal.valueOf(100));
 
                 if (bottomDifferencePercent.compareTo(
                         new BigDecimal("1.50")
@@ -3224,9 +2636,7 @@ public class IndicatorService {
                      i++) {
 
                     neckline =
-                            neckline.max(
-                                    closingPrices.get(i)
-                            );
+                            neckline.max(closingPrices.get(i));
                 }
 
                 BigDecimal averageBottom =
@@ -3246,9 +2656,7 @@ public class IndicatorService {
                                         SCALE,
                                         RoundingMode.HALF_UP
                                 )
-                                .multiply(
-                                        BigDecimal.valueOf(100)
-                                );
+                                .multiply(BigDecimal.valueOf(100));
 
                 if (reboundPercent.compareTo(
                         BigDecimal.valueOf(2)
@@ -3277,10 +2685,6 @@ public class IndicatorService {
         return false;
     }
 
-    // =========================
-    // HEAD AND SHOULDERS PATTERN
-    // =========================
-
     public boolean detectHeadAndShoulders(
             List<BigDecimal> closingPrices) {
 
@@ -3295,7 +2699,6 @@ public class IndicatorService {
         }
 
         for (BigDecimal price : closingPrices) {
-
             if (price == null) {
                 throw new IllegalArgumentException(
                         "Head and Shoulders closing prices cannot contain null values"
@@ -3357,11 +2760,8 @@ public class IndicatorService {
                 for (int i = leftShoulderIndex + 2;
                      i < headIndex;
                      i++) {
-
                     leftNeckline =
-                            leftNeckline.min(
-                                    closingPrices.get(i)
-                            );
+                            leftNeckline.min(closingPrices.get(i));
                 }
 
                 for (int rightShoulderIndex = headIndex + 2;
@@ -3399,9 +2799,7 @@ public class IndicatorService {
                                             SCALE,
                                             RoundingMode.HALF_UP
                                     )
-                                    .multiply(
-                                            BigDecimal.valueOf(100)
-                                    );
+                                    .multiply(BigDecimal.valueOf(100));
 
                     if (shoulderDifferencePercent.compareTo(
                             BigDecimal.valueOf(3)
@@ -3417,9 +2815,7 @@ public class IndicatorService {
                                             SCALE,
                                             RoundingMode.HALF_UP
                                     )
-                                    .multiply(
-                                            BigDecimal.valueOf(100)
-                                    );
+                                    .multiply(BigDecimal.valueOf(100));
 
                     if (headProminencePercent.compareTo(
                             BigDecimal.valueOf(2)
@@ -3433,11 +2829,8 @@ public class IndicatorService {
                     for (int i = headIndex + 2;
                          i < rightShoulderIndex;
                          i++) {
-
                         rightNeckline =
-                                rightNeckline.min(
-                                        closingPrices.get(i)
-                                );
+                                rightNeckline.min(closingPrices.get(i));
                     }
 
                     BigDecimal largerNeckline =
@@ -3452,9 +2845,7 @@ public class IndicatorService {
                                             SCALE,
                                             RoundingMode.HALF_UP
                                     )
-                                    .multiply(
-                                            BigDecimal.valueOf(100)
-                                    );
+                                    .multiply(BigDecimal.valueOf(100));
 
                     if (necklineDifferencePercent.compareTo(
                             BigDecimal.valueOf(3)
@@ -3493,10 +2884,6 @@ public class IndicatorService {
         return false;
     }
 
-    // =========================
-    // INVERSE HEAD AND SHOULDERS PATTERN
-    // =========================
-
     public boolean detectInverseHeadAndShoulders(
             List<BigDecimal> closingPrices) {
 
@@ -3511,7 +2898,6 @@ public class IndicatorService {
         }
 
         for (BigDecimal price : closingPrices) {
-
             if (price == null) {
                 throw new IllegalArgumentException(
                         "Inverse Head and Shoulders closing prices cannot contain null values"
@@ -3575,9 +2961,7 @@ public class IndicatorService {
                      i++) {
 
                     leftNeckline =
-                            leftNeckline.max(
-                                    closingPrices.get(i)
-                            );
+                            leftNeckline.max(closingPrices.get(i));
                 }
 
                 for (int rightShoulderIndex = headIndex + 2;
@@ -3615,9 +2999,7 @@ public class IndicatorService {
                                             SCALE,
                                             RoundingMode.HALF_UP
                                     )
-                                    .multiply(
-                                            BigDecimal.valueOf(100)
-                                    );
+                                    .multiply(BigDecimal.valueOf(100));
 
                     if (shoulderDifferencePercent.compareTo(
                             BigDecimal.valueOf(3)
@@ -3636,9 +3018,7 @@ public class IndicatorService {
                                             SCALE,
                                             RoundingMode.HALF_UP
                                     )
-                                    .multiply(
-                                            BigDecimal.valueOf(100)
-                                    );
+                                    .multiply(BigDecimal.valueOf(100));
 
                     if (headProminencePercent.compareTo(
                             BigDecimal.valueOf(2)
@@ -3652,11 +3032,8 @@ public class IndicatorService {
                     for (int i = headIndex + 2;
                          i < rightShoulderIndex;
                          i++) {
-
                         rightNeckline =
-                                rightNeckline.max(
-                                        closingPrices.get(i)
-                                );
+                                rightNeckline.max(closingPrices.get(i));
                     }
 
                     BigDecimal largerNeckline =
@@ -3671,9 +3048,7 @@ public class IndicatorService {
                                             SCALE,
                                             RoundingMode.HALF_UP
                                     )
-                                    .multiply(
-                                            BigDecimal.valueOf(100)
-                                    );
+                                    .multiply(BigDecimal.valueOf(100));
 
                     if (necklineDifferencePercent.compareTo(
                             BigDecimal.valueOf(3)
@@ -3712,10 +3087,6 @@ public class IndicatorService {
         return false;
     }
 
-    // =========================
-    // ASCENDING TRIANGLE PATTERN
-    // =========================
-
     public boolean detectAscendingTriangle(
             List<BigDecimal> closingPrices) {
 
@@ -3730,7 +3101,6 @@ public class IndicatorService {
         }
 
         for (BigDecimal price : closingPrices) {
-
             if (price == null) {
                 throw new IllegalArgumentException(
                         "Ascending Triangle closing prices cannot contain null values"
@@ -3744,7 +3114,8 @@ public class IndicatorService {
             }
         }
 
-        int breakoutIndex = closingPrices.size() - 1;
+        int breakoutIndex =
+                closingPrices.size() - 1;
 
         List<BigDecimal> resistancePeaks =
                 new ArrayList<>();
@@ -3794,7 +3165,6 @@ public class IndicatorService {
                 resistancePeaks.get(0);
 
         for (BigDecimal peak : resistancePeaks) {
-
             highestResistance =
                     highestResistance.max(peak);
 
@@ -3810,9 +3180,7 @@ public class IndicatorService {
                                 SCALE,
                                 RoundingMode.HALF_UP
                         )
-                        .multiply(
-                                BigDecimal.valueOf(100)
-                        );
+                        .multiply(BigDecimal.valueOf(100));
 
         if (resistanceVariationPercent.compareTo(
                 BigDecimal.ONE
@@ -3846,18 +3214,146 @@ public class IndicatorService {
                                 SCALE,
                                 RoundingMode.HALF_UP
                         )
-                        .multiply(
-                                BigDecimal.valueOf(100)
-                        );
+                        .multiply(BigDecimal.valueOf(100));
 
         return breakoutPercent.compareTo(
                 BigDecimal.ONE
         ) >= 0;
     }
 
-    // =========================
-    // MACD HELPER
-    // =========================
+    public boolean detectDescendingTriangle(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Descending Triangle closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Descending Triangle closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Descending Triangle closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakdownIndex =
+                closingPrices.size() - 1;
+
+        List<BigDecimal> supportTroughs =
+                new ArrayList<>();
+
+        List<BigDecimal> fallingHighs =
+                new ArrayList<>();
+
+        for (int i = 1;
+             i < breakdownIndex;
+             i++) {
+
+            BigDecimal currentPrice =
+                    closingPrices.get(i);
+
+            BigDecimal previousPrice =
+                    closingPrices.get(i - 1);
+
+            BigDecimal nextPrice =
+                    closingPrices.get(i + 1);
+
+            boolean localTrough =
+                    currentPrice.compareTo(previousPrice) < 0
+                            && currentPrice.compareTo(nextPrice) < 0;
+
+            if (localTrough) {
+                supportTroughs.add(currentPrice);
+            }
+
+            boolean localPeak =
+                    currentPrice.compareTo(previousPrice) > 0
+                            && currentPrice.compareTo(nextPrice) > 0;
+
+            if (localPeak) {
+                fallingHighs.add(currentPrice);
+            }
+        }
+
+        if (supportTroughs.size() < 2
+                || fallingHighs.size() < 2) {
+            return false;
+        }
+
+        BigDecimal highestSupport =
+                supportTroughs.get(0);
+
+        BigDecimal lowestSupport =
+                supportTroughs.get(0);
+
+        for (BigDecimal trough : supportTroughs) {
+            highestSupport =
+                    highestSupport.max(trough);
+
+            lowestSupport =
+                    lowestSupport.min(trough);
+        }
+
+        BigDecimal supportVariationPercent =
+                highestSupport
+                        .subtract(lowestSupport)
+                        .divide(
+                                highestSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        if (supportVariationPercent.compareTo(
+                BigDecimal.ONE
+        ) > 0) {
+            return false;
+        }
+
+        for (int i = 1;
+             i < fallingHighs.size();
+             i++) {
+
+            if (fallingHighs.get(i).compareTo(
+                    fallingHighs.get(i - 1)
+            ) >= 0) {
+                return false;
+            }
+        }
+
+        BigDecimal breakdownPrice =
+                closingPrices.get(breakdownIndex);
+
+        if (breakdownPrice.compareTo(lowestSupport) >= 0) {
+            return false;
+        }
+
+        BigDecimal breakdownPercent =
+                lowestSupport
+                        .subtract(breakdownPrice)
+                        .divide(
+                                lowestSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        return breakdownPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
 
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
@@ -3902,10 +3398,6 @@ public class IndicatorService {
         return macdValues;
     }
 
-    // =========================
-    // EMA HELPER
-    // =========================
-
     private BigDecimal calculateInitialSma(
             List<BigDecimal> prices,
             int period) {
@@ -3925,10 +3417,6 @@ public class IndicatorService {
         );
     }
 
-    // =========================
-    // DIRECTIONAL INDICATOR VALIDATION
-    // =========================
-
     private void validateDirectionalPrices(
             List<BigDecimal> highPrices,
             List<BigDecimal> lowPrices,
@@ -3939,7 +3427,6 @@ public class IndicatorService {
         if (highPrices == null
                 || lowPrices == null
                 || closingPrices == null) {
-
             throw new IllegalArgumentException(
                     indicatorName + " price lists cannot be null"
             );
@@ -3953,7 +3440,6 @@ public class IndicatorService {
 
         if (highPrices.size() != lowPrices.size()
                 || highPrices.size() != closingPrices.size()) {
-
             throw new IllegalArgumentException(
                     indicatorName + " price lists must have the same size"
             );
@@ -3965,10 +3451,6 @@ public class IndicatorService {
             );
         }
     }
-
-    // =========================
-    // VALIDATION
-    // =========================
 
     private void validatePricesAndPeriod(
             List<BigDecimal> prices,
@@ -4021,8 +3503,7 @@ public class IndicatorService {
         );
     }
 
-    private void validateSignalPeriod(
-            int signalPeriod) {
+    private void validateSignalPeriod(int signalPeriod) {
 
         if (signalPeriod <= 0) {
             throw new IllegalArgumentException(
