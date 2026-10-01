@@ -66,6 +66,7 @@ public class IndicatorStepDefinitions {
     private boolean bullFlagDetected;
     private boolean bearFlagDetected;
     private boolean bullishBreakoutDetected;
+    private boolean bearishBreakdownDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1281,6 +1282,29 @@ public class IndicatorStepDefinitions {
                 true,
                 bullishBreakoutDetected,
                 "Bullish Breakout was not detected"
+        );
+    }
+
+    // =========================
+    // BEARISH BREAKDOWN
+    // =========================
+
+    @When("I analyze the prices for a Bearish Breakdown")
+    public void analyzePricesForBearishBreakdown() {
+
+        bearishBreakdownDetected =
+                indicatorService.detectBearishBreakdown(
+                        closingPrices
+                );
+    }
+
+    @Then("the Bearish Breakdown should be detected")
+    public void bearishBreakdownShouldBeDetected() {
+
+        assertEquals(
+                true,
+                bearishBreakdownDetected,
+                "Bearish Breakdown was not detected"
         );
     }
 }

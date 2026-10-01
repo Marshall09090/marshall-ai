@@ -531,3 +531,17 @@ Feature: Nexora technical indicators
       | 105.50 |
     When I analyze the prices for a Bullish Breakout
     Then the Bullish Breakout should be detected
+
+  Scenario: Detect Bearish Breakdown
+    Given the following closing prices:
+      | price  |
+      | 105.00 |
+      | 104.00 |
+      | 103.00 |
+      | 103.50 |
+      | 102.50 |
+      | 102.00 |
+      | 99.50  |
+    When I analyze the prices for a Bearish Breakdown
+    Then the Bearish Breakdown should be detected
+

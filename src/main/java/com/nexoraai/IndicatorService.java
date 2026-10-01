@@ -2903,6 +2903,75 @@ public class IndicatorService {
     }
 
     // =========================
+    // BEARISH BREAKDOWN
+    // =========================
+
+    public boolean detectBearishBreakdown(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Bearish Breakdown closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 4) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Bearish Breakdown closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Bearish Breakdown closing prices must be greater than zero"
+                );
+            }
+        }
+
+        BigDecimal currentPrice =
+                closingPrices.get(closingPrices.size() - 1);
+
+        BigDecimal previousSupport =
+                closingPrices.get(0);
+
+        for (int i = 1;
+             i < closingPrices.size() - 1;
+             i++) {
+
+            previousSupport =
+                    previousSupport.min(
+                            closingPrices.get(i)
+                    );
+        }
+
+        if (currentPrice.compareTo(previousSupport) >= 0) {
+            return false;
+        }
+
+        BigDecimal breakdownPercent =
+                previousSupport
+                        .subtract(currentPrice)
+                        .divide(
+                                previousSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        return breakdownPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 
