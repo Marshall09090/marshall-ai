@@ -2972,6 +2972,159 @@ public class IndicatorService {
     }
 
     // =========================
+    // DOUBLE TOP PATTERN
+    // =========================
+
+    public boolean detectDoubleTop(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Double Top closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Double Top closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Double Top closing prices must be greater than zero"
+                );
+            }
+        }
+
+        for (int firstPeakIndex = 1;
+             firstPeakIndex < closingPrices.size() - 4;
+             firstPeakIndex++) {
+
+            BigDecimal firstPeak =
+                    closingPrices.get(firstPeakIndex);
+
+            boolean firstLocalPeak =
+                    firstPeak.compareTo(
+                            closingPrices.get(firstPeakIndex - 1)
+                    ) > 0
+                            && firstPeak.compareTo(
+                            closingPrices.get(firstPeakIndex + 1)
+                    ) > 0;
+
+            if (!firstLocalPeak) {
+                continue;
+            }
+
+            for (int secondPeakIndex = firstPeakIndex + 2;
+                 secondPeakIndex < closingPrices.size() - 1;
+                 secondPeakIndex++) {
+
+                BigDecimal secondPeak =
+                        closingPrices.get(secondPeakIndex);
+
+                boolean secondLocalPeak =
+                        secondPeak.compareTo(
+                                closingPrices.get(secondPeakIndex - 1)
+                        ) > 0
+                                && secondPeak.compareTo(
+                                closingPrices.get(secondPeakIndex + 1)
+                        ) > 0;
+
+                if (!secondLocalPeak) {
+                    continue;
+                }
+
+                BigDecimal largerPeak =
+                        firstPeak.max(secondPeak);
+
+                BigDecimal peakDifferencePercent =
+                        firstPeak
+                                .subtract(secondPeak)
+                                .abs()
+                                .divide(
+                                        largerPeak,
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                )
+                                .multiply(
+                                        BigDecimal.valueOf(100)
+                                );
+
+                if (peakDifferencePercent.compareTo(
+                        new BigDecimal("1.50")
+                ) > 0) {
+                    continue;
+                }
+
+                BigDecimal valley =
+                        closingPrices.get(firstPeakIndex + 1);
+
+                for (int i = firstPeakIndex + 2;
+                     i < secondPeakIndex;
+                     i++) {
+
+                    valley =
+                            valley.min(
+                                    closingPrices.get(i)
+                            );
+                }
+
+                BigDecimal averagePeak =
+                        firstPeak
+                                .add(secondPeak)
+                                .divide(
+                                        BigDecimal.valueOf(2),
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                );
+
+                BigDecimal valleyDepthPercent =
+                        averagePeak
+                                .subtract(valley)
+                                .divide(
+                                        averagePeak,
+                                        SCALE,
+                                        RoundingMode.HALF_UP
+                                )
+                                .multiply(
+                                        BigDecimal.valueOf(100)
+                                );
+
+                if (valleyDepthPercent.compareTo(
+                        BigDecimal.valueOf(2)
+                ) < 0) {
+                    continue;
+                }
+
+                boolean necklineBreak = false;
+
+                for (int i = secondPeakIndex + 1;
+                     i < closingPrices.size();
+                     i++) {
+
+                    if (closingPrices.get(i).compareTo(valley) < 0) {
+                        necklineBreak = true;
+                        break;
+                    }
+                }
+
+                if (necklineBreak) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // =========================
     // MACD HELPER
     // =========================
 

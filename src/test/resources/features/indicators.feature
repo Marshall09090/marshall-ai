@@ -545,3 +545,15 @@ Feature: Nexora technical indicators
     When I analyze the prices for a Bearish Breakdown
     Then the Bearish Breakdown should be detected
 
+  Scenario: Detect Double Top pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 104.00 |
+      | 108.00 |
+      | 104.00 |
+      | 108.20 |
+      | 103.00 |
+      | 99.00  |
+    When I analyze the prices for a Double Top pattern
+    Then the Double Top pattern should be detected

@@ -67,6 +67,7 @@ public class IndicatorStepDefinitions {
     private boolean bearFlagDetected;
     private boolean bullishBreakoutDetected;
     private boolean bearishBreakdownDetected;
+    private boolean doubleTopDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1305,6 +1306,29 @@ public class IndicatorStepDefinitions {
                 true,
                 bearishBreakdownDetected,
                 "Bearish Breakdown was not detected"
+        );
+    }
+
+    // =========================
+    // DOUBLE TOP PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Double Top pattern")
+    public void analyzePricesForDoubleTopPattern() {
+
+        doubleTopDetected =
+                indicatorService.detectDoubleTop(
+                        closingPrices
+                );
+    }
+
+    @Then("the Double Top pattern should be detected")
+    public void doubleTopPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                doubleTopDetected,
+                "Double Top pattern was not detected"
         );
     }
 }
