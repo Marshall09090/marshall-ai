@@ -82,6 +82,7 @@ public class IndicatorStepDefinitions {
     private boolean cupAndHandleDetected;
     private boolean inverseCupAndHandleDetected;
     private boolean roundingBottomDetected;
+    private boolean roundingTopDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1618,7 +1619,6 @@ public class IndicatorStepDefinitions {
                 "Inverse Cup and Handle pattern was not detected"
         );
     }
-
     // =========================
     // ROUNDING BOTTOM PATTERN
     // =========================
@@ -1639,6 +1639,29 @@ public class IndicatorStepDefinitions {
                 true,
                 roundingBottomDetected,
                 "Rounding Bottom pattern was not detected"
+        );
+    }
+
+    // =========================
+    // ROUNDING TOP PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Rounding Top pattern")
+    public void analyzePricesForRoundingTopPattern() {
+
+        roundingTopDetected =
+                indicatorService.detectRoundingTop(
+                        closingPrices
+                );
+    }
+
+    @Then("the Rounding Top pattern should be detected")
+    public void roundingTopPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                roundingTopDetected,
+                "Rounding Top pattern was not detected"
         );
     }
 }

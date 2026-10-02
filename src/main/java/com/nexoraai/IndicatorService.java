@@ -6747,6 +6747,239 @@ public class IndicatorService {
         ) >= 0;
     }
 
+    // =========================
+    // ROUNDING TOP PATTERN
+    // =========================
+
+    public boolean detectRoundingTop(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Rounding Top closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 9) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Rounding Top closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Rounding Top closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakdownIndex =
+                closingPrices.size() - 1;
+
+        int topIndex = 1;
+
+        BigDecimal topPrice =
+                closingPrices.get(topIndex);
+
+        for (int i = 2;
+             i < breakdownIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(topPrice) > 0) {
+
+                topPrice =
+                        closingPrices.get(i);
+
+                topIndex = i;
+            }
+        }
+
+        if (topIndex < 3
+                || breakdownIndex - topIndex < 4) {
+
+            return false;
+        }
+
+        BigDecimal leftSupport =
+                closingPrices.get(0);
+
+        BigDecimal rightSupport =
+                closingPrices.get(
+                        breakdownIndex - 1
+                );
+
+        for (int i = 1;
+             i <= topIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(
+                    closingPrices.get(i - 1)
+            ) <= 0) {
+
+                return false;
+            }
+        }
+
+        for (int i = topIndex + 1;
+             i < breakdownIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(
+                    closingPrices.get(i - 1)
+            ) >= 0) {
+
+                return false;
+            }
+        }
+
+        BigDecimal largerSupport =
+                leftSupport.max(rightSupport);
+
+        BigDecimal supportDifferencePercent =
+                leftSupport
+                        .subtract(rightSupport)
+                        .abs()
+                        .divide(
+                                largerSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (supportDifferencePercent.compareTo(
+                BigDecimal.valueOf(5)
+        ) > 0) {
+
+            return false;
+        }
+
+        BigDecimal averageSupport =
+                leftSupport
+                        .add(rightSupport)
+                        .divide(
+                                BigDecimal.valueOf(2),
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        BigDecimal patternHeight =
+                topPrice.subtract(averageSupport);
+
+        BigDecimal patternHeightPercent =
+                patternHeight
+                        .divide(
+                                averageSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (patternHeightPercent.compareTo(
+                BigDecimal.valueOf(5)
+        ) < 0) {
+
+            return false;
+        }
+
+        boolean slowingIntoTop = true;
+
+        for (int i = 2;
+             i <= topIndex;
+             i++) {
+
+            BigDecimal previousRise =
+                    closingPrices.get(i - 1)
+                            .subtract(
+                                    closingPrices.get(i - 2)
+                            )
+                            .abs();
+
+            BigDecimal currentRise =
+                    closingPrices.get(i)
+                            .subtract(
+                                    closingPrices.get(i - 1)
+                            )
+                            .abs();
+
+            if (currentRise.compareTo(previousRise) > 0) {
+
+                slowingIntoTop = false;
+                break;
+            }
+        }
+
+        if (!slowingIntoTop) {
+            return false;
+        }
+
+        boolean acceleratingOutOfTop = true;
+
+        for (int i = topIndex + 2;
+             i < breakdownIndex;
+             i++) {
+
+            BigDecimal previousDecline =
+                    closingPrices.get(i - 2)
+                            .subtract(
+                                    closingPrices.get(i - 1)
+                            )
+                            .abs();
+
+            BigDecimal currentDecline =
+                    closingPrices.get(i - 1)
+                            .subtract(
+                                    closingPrices.get(i)
+                            )
+                            .abs();
+
+            if (currentDecline.compareTo(previousDecline) < 0) {
+
+                acceleratingOutOfTop = false;
+                break;
+            }
+        }
+
+        if (!acceleratingOutOfTop) {
+            return false;
+        }
+
+        BigDecimal breakdownPrice =
+                closingPrices.get(breakdownIndex);
+
+        BigDecimal supportLevel =
+                leftSupport.min(rightSupport);
+
+        if (breakdownPrice.compareTo(supportLevel) >= 0) {
+            return false;
+        }
+
+        BigDecimal breakdownPercent =
+                supportLevel
+                        .subtract(breakdownPrice)
+                        .divide(
+                                supportLevel,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        return breakdownPercent.compareTo(
+                new BigDecimal("0.50")
+        ) >= 0;
+    }
+
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,

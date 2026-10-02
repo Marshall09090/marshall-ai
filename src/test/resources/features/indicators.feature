@@ -750,3 +750,20 @@ Feature: Nexora technical indicators
       | 113.00 |
     When I analyze the prices for a Rounding Bottom pattern
     Then the Rounding Bottom pattern should be detected
+
+  Scenario: Detect Rounding Top pattern
+    Given the following closing prices:
+      | price  |
+      | 98.00  |
+      | 102.00 |
+      | 106.00 |
+      | 109.00 |
+      | 111.00 |
+      | 112.00 |
+      | 111.00 |
+      | 109.00 |
+      | 106.00 |
+      | 102.00 |
+      | 97.00  |
+    When I analyze the prices for a Rounding Top pattern
+    Then the Rounding Top pattern should be detected
