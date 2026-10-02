@@ -733,3 +733,20 @@ Feature: Nexora technical indicators
       | 98.50  |
     When I analyze the prices for an Inverse Cup and Handle pattern
     Then the Inverse Cup and Handle pattern should be detected
+
+  Scenario: Detect Rounding Bottom pattern
+    Given the following closing prices:
+      | price  |
+      | 112.00 |
+      | 108.00 |
+      | 104.00 |
+      | 101.00 |
+      | 99.00  |
+      | 98.00  |
+      | 99.00  |
+      | 101.00 |
+      | 104.00 |
+      | 108.00 |
+      | 113.00 |
+    When I analyze the prices for a Rounding Bottom pattern
+    Then the Rounding Bottom pattern should be detected
