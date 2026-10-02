@@ -697,3 +697,21 @@ Feature: Nexora technical indicators
       | 104.00 |
     When I analyze the prices for a Bearish Pennant pattern
     Then the Bearish Pennant pattern should be detected
+
+  Scenario: Detect Cup and Handle pattern
+    Given the following closing prices:
+      | price  |
+      | 110.00 |
+      | 106.00 |
+      | 102.00 |
+      | 99.00  |
+      | 98.00  |
+      | 99.50  |
+      | 102.00 |
+      | 106.00 |
+      | 109.00 |
+      | 107.50 |
+      | 108.20 |
+      | 111.50 |
+    When I analyze the prices for a Cup and Handle pattern
+    Then the Cup and Handle pattern should be detected

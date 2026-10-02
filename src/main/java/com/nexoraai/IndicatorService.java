@@ -4206,6 +4206,251 @@ public class IndicatorService {
         ) >= 0;
     }
 
+    // =========================
+    // CUP AND HANDLE PATTERN
+    // =========================
+
+    public boolean detectCupAndHandle(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Cup and Handle closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 10) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Cup and Handle closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Cup and Handle closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakoutIndex =
+                closingPrices.size() - 1;
+
+        int cupBottomIndex = 1;
+        BigDecimal cupBottom =
+                closingPrices.get(cupBottomIndex);
+
+        for (int i = 2;
+             i <= breakoutIndex - 3;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(cupBottom) < 0) {
+                cupBottom =
+                        closingPrices.get(i);
+
+                cupBottomIndex = i;
+            }
+        }
+
+        if (cupBottomIndex < 2
+                || cupBottomIndex > breakoutIndex - 4) {
+            return false;
+        }
+
+        int leftRimIndex = 0;
+        BigDecimal leftRim =
+                closingPrices.get(leftRimIndex);
+
+        for (int i = 1;
+             i < cupBottomIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(leftRim) > 0) {
+                leftRim =
+                        closingPrices.get(i);
+
+                leftRimIndex = i;
+            }
+        }
+
+        int rightRimIndex =
+                cupBottomIndex + 1;
+
+        BigDecimal rightRim =
+                closingPrices.get(rightRimIndex);
+
+        for (int i = cupBottomIndex + 2;
+             i <= breakoutIndex - 3;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(rightRim) > 0) {
+                rightRim =
+                        closingPrices.get(i);
+
+                rightRimIndex = i;
+            }
+        }
+
+        if (leftRimIndex >= cupBottomIndex
+                || rightRimIndex <= cupBottomIndex) {
+            return false;
+        }
+
+        for (int i = leftRimIndex + 1;
+             i <= cupBottomIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(
+                    closingPrices.get(i - 1)
+            ) >= 0) {
+                return false;
+            }
+        }
+
+        for (int i = cupBottomIndex + 1;
+             i <= rightRimIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(
+                    closingPrices.get(i - 1)
+            ) <= 0) {
+                return false;
+            }
+        }
+
+        BigDecimal largerRim =
+                leftRim.max(rightRim);
+
+        BigDecimal rimDifferencePercent =
+                leftRim
+                        .subtract(rightRim)
+                        .abs()
+                        .divide(
+                                largerRim,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        if (rimDifferencePercent.compareTo(
+                BigDecimal.valueOf(3)
+        ) > 0) {
+            return false;
+        }
+
+        BigDecimal averageRim =
+                leftRim
+                        .add(rightRim)
+                        .divide(
+                                BigDecimal.valueOf(2),
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        BigDecimal cupDepth =
+                averageRim.subtract(cupBottom);
+
+        BigDecimal cupDepthPercent =
+                cupDepth
+                        .divide(
+                                averageRim,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        if (cupDepthPercent.compareTo(
+                BigDecimal.valueOf(5)
+        ) < 0) {
+            return false;
+        }
+
+        int handleStart =
+                rightRimIndex + 1;
+
+        int handleEnd =
+                breakoutIndex - 1;
+
+        if (handleEnd - handleStart + 1 < 2) {
+            return false;
+        }
+
+        BigDecimal handleLow =
+                closingPrices.get(handleStart);
+
+        BigDecimal handleHigh =
+                closingPrices.get(handleStart);
+
+        for (int i = handleStart;
+             i <= handleEnd;
+             i++) {
+
+            BigDecimal price =
+                    closingPrices.get(i);
+
+            handleLow =
+                    handleLow.min(price);
+
+            handleHigh =
+                    handleHigh.max(price);
+
+            if (price.compareTo(rightRim) >= 0) {
+                return false;
+            }
+        }
+
+        BigDecimal handleDepth =
+                rightRim.subtract(handleLow);
+
+        BigDecimal maximumHandleDepth =
+                cupDepth.multiply(
+                        new BigDecimal("0.50")
+                );
+
+        if (handleDepth.compareTo(
+                maximumHandleDepth
+        ) > 0) {
+            return false;
+        }
+
+        if (closingPrices.get(handleEnd).compareTo(
+                handleLow
+        ) <= 0) {
+            return false;
+        }
+
+        BigDecimal breakoutPrice =
+                closingPrices.get(breakoutIndex);
+
+        BigDecimal breakoutLevel =
+                leftRim.max(rightRim);
+
+        if (breakoutPrice.compareTo(
+                breakoutLevel
+        ) <= 0) {
+            return false;
+        }
+
+        BigDecimal breakoutPercent =
+                breakoutPrice
+                        .subtract(breakoutLevel)
+                        .divide(
+                                breakoutLevel,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        return breakoutPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,
