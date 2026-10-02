@@ -715,3 +715,21 @@ Feature: Nexora technical indicators
       | 111.50 |
     When I analyze the prices for a Cup and Handle pattern
     Then the Cup and Handle pattern should be detected
+
+  Scenario: Detect Inverse Cup and Handle pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 104.00 |
+      | 108.00 |
+      | 111.00 |
+      | 112.00 |
+      | 110.50 |
+      | 108.00 |
+      | 104.00 |
+      | 101.00 |
+      | 102.50 |
+      | 101.80 |
+      | 98.50  |
+    When I analyze the prices for an Inverse Cup and Handle pattern
+    Then the Inverse Cup and Handle pattern should be detected

@@ -80,6 +80,7 @@ public class IndicatorStepDefinitions {
     private boolean bullishPennantDetected;
     private boolean bearishPennantDetected;
     private boolean cupAndHandleDetected;
+    private boolean inverseCupAndHandleDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1592,6 +1593,28 @@ public class IndicatorStepDefinitions {
                 true,
                 cupAndHandleDetected,
                 "Cup and Handle pattern was not detected"
+        );
+    }
+    // =========================
+    // INVERSE CUP AND HANDLE PATTERN
+    // =========================
+
+    @When("I analyze the prices for an Inverse Cup and Handle pattern")
+    public void analyzePricesForInverseCupAndHandlePattern() {
+
+        inverseCupAndHandleDetected =
+                indicatorService.detectInverseCupAndHandle(
+                        closingPrices
+                );
+    }
+
+    @Then("the Inverse Cup and Handle pattern should be detected")
+    public void inverseCupAndHandlePatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                inverseCupAndHandleDetected,
+                "Inverse Cup and Handle pattern was not detected"
         );
     }
 }
