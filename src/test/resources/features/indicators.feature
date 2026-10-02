@@ -666,3 +666,18 @@ Feature: Nexora technical indicators
       | 107.00 |
     When I analyze the prices for a Falling Wedge pattern
     Then the Falling Wedge pattern should be detected
+
+  Scenario: Detect Bullish Pennant pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 104.00 |
+      | 109.00 |
+      | 114.00 |
+      | 112.00 |
+      | 113.50 |
+      | 112.50 |
+      | 113.20 |
+      | 116.00 |
+    When I analyze the prices for a Bullish Pennant pattern
+    Then the Bullish Pennant pattern should be detected

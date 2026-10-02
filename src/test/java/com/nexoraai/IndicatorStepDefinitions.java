@@ -63,6 +63,7 @@ public class IndicatorStepDefinitions {
     private BigDecimal aroonUpResult;
     private BigDecimal aroonDownResult;
     private BigDecimal aroonOscillatorResult;
+
     private boolean bullFlagDetected;
     private boolean bearFlagDetected;
     private boolean bullishBreakoutDetected;
@@ -76,6 +77,7 @@ public class IndicatorStepDefinitions {
     private boolean symmetricalTriangleDetected;
     private boolean risingWedgeDetected;
     private boolean fallingWedgeDetected;
+    private boolean bullishPennantDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1521,6 +1523,29 @@ public class IndicatorStepDefinitions {
                 true,
                 fallingWedgeDetected,
                 "Falling Wedge pattern was not detected"
+        );
+    }
+
+    // =========================
+    // BULLISH PENNANT PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Bullish Pennant pattern")
+    public void analyzePricesForBullishPennantPattern() {
+
+        bullishPennantDetected =
+                indicatorService.detectBullishPennant(
+                        closingPrices
+                );
+    }
+
+    @Then("the Bullish Pennant pattern should be detected")
+    public void bullishPennantPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                bullishPennantDetected,
+                "Bullish Pennant pattern was not detected"
         );
     }
 }
