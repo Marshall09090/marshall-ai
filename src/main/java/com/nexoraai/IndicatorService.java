@@ -6979,6 +6979,7 @@ public class IndicatorService {
                 new BigDecimal("0.50")
         ) >= 0;
     }
+
     // =========================
     // TRIPLE TOP PATTERN
     // =========================
@@ -7236,6 +7237,265 @@ public class IndicatorService {
 
         return false;
     }
+
+    // =========================
+    // TRIPLE BOTTOM PATTERN
+    // =========================
+
+    public boolean detectTripleBottom(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Triple Bottom closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 8) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Triple Bottom closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Triple Bottom closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakoutIndex =
+                closingPrices.size() - 1;
+
+        List<Integer> troughIndexes =
+                new ArrayList<>();
+
+        for (int i = 1;
+             i < breakoutIndex;
+             i++) {
+
+            BigDecimal current =
+                    closingPrices.get(i);
+
+            BigDecimal previous =
+                    closingPrices.get(i - 1);
+
+            BigDecimal next =
+                    closingPrices.get(i + 1);
+
+            if (current.compareTo(previous) < 0
+                    && current.compareTo(next) < 0) {
+
+                troughIndexes.add(i);
+            }
+        }
+
+        if (troughIndexes.size() < 3) {
+            return false;
+        }
+
+        for (int first = 0;
+             first < troughIndexes.size() - 2;
+             first++) {
+
+            for (int second = first + 1;
+                 second < troughIndexes.size() - 1;
+                 second++) {
+
+                for (int third = second + 1;
+                     third < troughIndexes.size();
+                     third++) {
+
+                    int firstBottomIndex =
+                            troughIndexes.get(first);
+
+                    int secondBottomIndex =
+                            troughIndexes.get(second);
+
+                    int thirdBottomIndex =
+                            troughIndexes.get(third);
+
+                    BigDecimal firstBottom =
+                            closingPrices.get(firstBottomIndex);
+
+                    BigDecimal secondBottom =
+                            closingPrices.get(secondBottomIndex);
+
+                    BigDecimal thirdBottom =
+                            closingPrices.get(thirdBottomIndex);
+
+                    BigDecimal highestBottom =
+                            firstBottom
+                                    .max(secondBottom)
+                                    .max(thirdBottom);
+
+                    BigDecimal lowestBottom =
+                            firstBottom
+                                    .min(secondBottom)
+                                    .min(thirdBottom);
+
+                    BigDecimal bottomVariationPercent =
+                            highestBottom
+                                    .subtract(lowestBottom)
+                                    .divide(
+                                            lowestBottom,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (bottomVariationPercent.compareTo(
+                            BigDecimal.valueOf(2)
+                    ) > 0) {
+
+                        continue;
+                    }
+
+                    BigDecimal firstRebound =
+                            closingPrices.get(
+                                    firstBottomIndex + 1
+                            );
+
+                    for (int i = firstBottomIndex + 1;
+                         i < secondBottomIndex;
+                         i++) {
+
+                        firstRebound =
+                                firstRebound.max(
+                                        closingPrices.get(i)
+                                );
+                    }
+
+                    BigDecimal secondRebound =
+                            closingPrices.get(
+                                    secondBottomIndex + 1
+                            );
+
+                    for (int i = secondBottomIndex + 1;
+                         i < thirdBottomIndex;
+                         i++) {
+
+                        secondRebound =
+                                secondRebound.max(
+                                        closingPrices.get(i)
+                                );
+                    }
+
+                    BigDecimal averageBottom =
+                            firstBottom
+                                    .add(secondBottom)
+                                    .add(thirdBottom)
+                                    .divide(
+                                            BigDecimal.valueOf(3),
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    );
+
+                    BigDecimal firstReboundPercent =
+                            firstRebound
+                                    .subtract(averageBottom)
+                                    .divide(
+                                            averageBottom,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    BigDecimal secondReboundPercent =
+                            secondRebound
+                                    .subtract(averageBottom)
+                                    .divide(
+                                            averageBottom,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (firstReboundPercent.compareTo(
+                            BigDecimal.valueOf(2)
+                    ) < 0
+                            || secondReboundPercent.compareTo(
+                            BigDecimal.valueOf(2)
+                    ) < 0) {
+
+                        continue;
+                    }
+
+                    BigDecimal largerRebound =
+                            firstRebound.max(secondRebound);
+
+                    BigDecimal reboundVariationPercent =
+                            firstRebound
+                                    .subtract(secondRebound)
+                                    .abs()
+                                    .divide(
+                                            largerRebound,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (reboundVariationPercent.compareTo(
+                            BigDecimal.valueOf(3)
+                    ) > 0) {
+
+                        continue;
+                    }
+
+                    BigDecimal neckline =
+                            firstRebound.max(secondRebound);
+
+                    BigDecimal breakoutPrice =
+                            closingPrices.get(
+                                    breakoutIndex
+                            );
+
+                    if (breakoutPrice.compareTo(
+                            neckline
+                    ) <= 0) {
+
+                        continue;
+                    }
+
+                    BigDecimal breakoutPercent =
+                            breakoutPrice
+                                    .subtract(neckline)
+                                    .divide(
+                                            neckline,
+                                            SCALE,
+                                            RoundingMode.HALF_UP
+                                    )
+                                    .multiply(
+                                            BigDecimal.valueOf(100)
+                                    );
+
+                    if (breakoutPercent.compareTo(
+                            BigDecimal.ONE
+                    ) >= 0) {
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,

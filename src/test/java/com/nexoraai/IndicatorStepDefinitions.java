@@ -84,6 +84,7 @@ public class IndicatorStepDefinitions {
     private boolean roundingBottomDetected;
     private boolean roundingTopDetected;
     private boolean tripleTopDetected;
+    private boolean tripleBottomDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1685,6 +1686,28 @@ public class IndicatorStepDefinitions {
                 true,
                 tripleTopDetected,
                 "Triple Top pattern was not detected"
+        );
+    }
+    // =========================
+    // TRIPLE BOTTOM PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Triple Bottom pattern")
+    public void analyzePricesForTripleBottomPattern() {
+
+        tripleBottomDetected =
+                indicatorService.detectTripleBottom(
+                        closingPrices
+                );
+    }
+
+    @Then("the Triple Bottom pattern should be detected")
+    public void tripleBottomPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                tripleBottomDetected,
+                "Triple Bottom pattern was not detected"
         );
     }
 }

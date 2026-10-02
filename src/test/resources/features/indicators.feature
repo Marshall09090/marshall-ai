@@ -781,3 +781,17 @@ Feature: Nexora technical indicators
       | 98.00  |
     When I analyze the prices for a Triple Top pattern
     Then the Triple Top pattern should be detected
+
+  Scenario: Detect Triple Bottom pattern
+    Given the following closing prices:
+      | price  |
+      | 110.00 |
+      | 102.00 |
+      | 108.00 |
+      | 102.50 |
+      | 108.50 |
+      | 101.80 |
+      | 109.00 |
+      | 112.00 |
+    When I analyze the prices for a Triple Bottom pattern
+    Then the Triple Bottom pattern should be detected
