@@ -767,3 +767,17 @@ Feature: Nexora technical indicators
       | 97.00  |
     When I analyze the prices for a Rounding Top pattern
     Then the Rounding Top pattern should be detected
+
+  Scenario: Detect Triple Top pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 108.00 |
+      | 102.00 |
+      | 107.50 |
+      | 101.50 |
+      | 108.20 |
+      | 101.00 |
+      | 98.00  |
+    When I analyze the prices for a Triple Top pattern
+    Then the Triple Top pattern should be detected
