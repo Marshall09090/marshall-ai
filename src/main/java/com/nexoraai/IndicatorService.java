@@ -8155,6 +8155,247 @@ public class IndicatorService {
                 BigDecimal.valueOf(3)
         ) >= 0;
     }
+    // =========================
+    // DESCENDING CHANNEL PATTERN
+    // =========================
+
+    public boolean detectDescendingChannel(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Descending Channel closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 7) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Descending Channel closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Descending Channel closing prices must be greater than zero"
+                );
+            }
+        }
+
+        List<BigDecimal> channelHighs =
+                new ArrayList<>();
+
+        List<BigDecimal> channelLows =
+                new ArrayList<>();
+
+        for (int i = 1;
+             i < closingPrices.size() - 1;
+             i++) {
+
+            BigDecimal previous =
+                    closingPrices.get(i - 1);
+
+            BigDecimal current =
+                    closingPrices.get(i);
+
+            BigDecimal next =
+                    closingPrices.get(i + 1);
+
+            if (current.compareTo(previous) > 0
+                    && current.compareTo(next) > 0) {
+
+                channelHighs.add(current);
+            }
+
+            if (current.compareTo(previous) < 0
+                    && current.compareTo(next) < 0) {
+
+                channelLows.add(current);
+            }
+        }
+
+        if (channelHighs.size() < 3
+                || channelLows.size() < 3) {
+
+            return false;
+        }
+
+        // Lower highs
+        for (int i = 1;
+             i < channelHighs.size();
+             i++) {
+
+            if (channelHighs.get(i).compareTo(
+                    channelHighs.get(i - 1)
+            ) >= 0) {
+
+                return false;
+            }
+        }
+
+        // Lower lows
+        for (int i = 1;
+             i < channelLows.size();
+             i++) {
+
+            if (channelLows.get(i).compareTo(
+                    channelLows.get(i - 1)
+            ) >= 0) {
+
+                return false;
+            }
+        }
+
+        BigDecimal highSlope =
+                channelHighs
+                        .get(channelHighs.size() - 1)
+                        .subtract(channelHighs.get(0))
+                        .divide(
+                                BigDecimal.valueOf(
+                                        channelHighs.size() - 1L
+                                ),
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        BigDecimal lowSlope =
+                channelLows
+                        .get(channelLows.size() - 1)
+                        .subtract(channelLows.get(0))
+                        .divide(
+                                BigDecimal.valueOf(
+                                        channelLows.size() - 1L
+                                ),
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        if (highSlope.compareTo(BigDecimal.ZERO) >= 0
+                || lowSlope.compareTo(BigDecimal.ZERO) >= 0) {
+
+            return false;
+        }
+
+        BigDecimal absoluteHighSlope =
+                highSlope.abs();
+
+        BigDecimal absoluteLowSlope =
+                lowSlope.abs();
+
+        BigDecimal largerSlope =
+                absoluteHighSlope.max(
+                        absoluteLowSlope
+                );
+
+        BigDecimal slopeDifferencePercent =
+                absoluteHighSlope
+                        .subtract(absoluteLowSlope)
+                        .abs()
+                        .divide(
+                                largerSlope,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        // Upper and lower channel lines should be roughly parallel.
+        if (slopeDifferencePercent.compareTo(
+                BigDecimal.valueOf(25)
+        ) > 0) {
+
+            return false;
+        }
+
+        int pairCount =
+                Math.min(
+                        channelHighs.size(),
+                        channelLows.size()
+                );
+
+        BigDecimal minimumWidth = null;
+        BigDecimal maximumWidth = null;
+
+        for (int i = 0;
+             i < pairCount;
+             i++) {
+
+            BigDecimal width =
+                    channelHighs.get(i)
+                            .subtract(
+                                    channelLows.get(i)
+                            );
+
+            if (width.compareTo(BigDecimal.ZERO) <= 0) {
+                return false;
+            }
+
+            if (minimumWidth == null
+                    || width.compareTo(minimumWidth) < 0) {
+
+                minimumWidth = width;
+            }
+
+            if (maximumWidth == null
+                    || width.compareTo(maximumWidth) > 0) {
+
+                maximumWidth = width;
+            }
+        }
+
+        BigDecimal widthVariationPercent =
+                maximumWidth
+                        .subtract(minimumWidth)
+                        .divide(
+                                maximumWidth,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (widthVariationPercent.compareTo(
+                BigDecimal.valueOf(25)
+        ) > 0) {
+
+            return false;
+        }
+
+        BigDecimal startingPrice =
+                closingPrices.get(0);
+
+        BigDecimal endingPrice =
+                closingPrices.get(
+                        closingPrices.size() - 1
+                );
+
+        if (endingPrice.compareTo(startingPrice) >= 0) {
+            return false;
+        }
+
+        BigDecimal overallLossPercent =
+                startingPrice
+                        .subtract(endingPrice)
+                        .divide(
+                                startingPrice,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        return overallLossPercent.compareTo(
+                BigDecimal.valueOf(3)
+        ) >= 0;
+    }
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,

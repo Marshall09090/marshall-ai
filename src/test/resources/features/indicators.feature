@@ -839,3 +839,19 @@ Feature: Nexora technical indicators
       | 113.00 |
     When I analyze the prices for an Ascending Channel pattern
     Then the Ascending Channel pattern should be detected
+
+  Scenario: Detect Descending Channel pattern
+    Given the following closing prices:
+      | price  |
+      | 113.00 |
+      | 108.00 |
+      | 111.00 |
+      | 106.00 |
+      | 109.00 |
+      | 104.00 |
+      | 107.00 |
+      | 102.00 |
+      | 105.00 |
+      | 100.00 |
+    When I analyze the prices for a Descending Channel pattern
+    Then the Descending Channel pattern should be detected
