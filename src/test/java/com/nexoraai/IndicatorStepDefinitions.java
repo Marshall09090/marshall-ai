@@ -78,6 +78,7 @@ public class IndicatorStepDefinitions {
     private boolean risingWedgeDetected;
     private boolean fallingWedgeDetected;
     private boolean bullishPennantDetected;
+    private boolean bearishPennantDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1546,6 +1547,28 @@ public class IndicatorStepDefinitions {
                 true,
                 bullishPennantDetected,
                 "Bullish Pennant pattern was not detected"
+        );
+    }
+    // =========================
+    // BEARISH PENNANT PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Bearish Pennant pattern")
+    public void analyzePricesForBearishPennantPattern() {
+
+        bearishPennantDetected =
+                indicatorService.detectBearishPennant(
+                        closingPrices
+                );
+    }
+
+    @Then("the Bearish Pennant pattern should be detected")
+    public void bearishPennantPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                bearishPennantDetected,
+                "Bearish Pennant pattern was not detected"
         );
     }
 }

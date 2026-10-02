@@ -681,3 +681,19 @@ Feature: Nexora technical indicators
       | 116.00 |
     When I analyze the prices for a Bullish Pennant pattern
     Then the Bullish Pennant pattern should be detected
+
+
+  Scenario: Detect Bearish Pennant pattern
+    Given the following closing prices:
+      | price  |
+      | 120.00 |
+      | 116.00 |
+      | 111.00 |
+      | 106.00 |
+      | 108.00 |
+      | 106.50 |
+      | 107.50 |
+      | 106.80 |
+      | 104.00 |
+    When I analyze the prices for a Bearish Pennant pattern
+    Then the Bearish Pennant pattern should be detected

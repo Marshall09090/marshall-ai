@@ -4002,6 +4002,210 @@ public class IndicatorService {
         ) >= 0;
     }
 
+    // =========================
+    // BEARISH PENNANT PATTERN
+    // =========================
+
+    public boolean detectBearishPennant(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Bearish Pennant closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 9) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Bearish Pennant closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Bearish Pennant closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakdownIndex =
+                closingPrices.size() - 1;
+
+        int poleTroughIndex = 0;
+        BigDecimal poleTrough = closingPrices.get(0);
+
+        for (int i = 1;
+             i < breakdownIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(poleTrough) < 0) {
+                poleTrough = closingPrices.get(i);
+                poleTroughIndex = i;
+            }
+        }
+
+        if (poleTroughIndex < 2
+                || breakdownIndex - poleTroughIndex < 5) {
+            return false;
+        }
+
+        BigDecimal startingPrice =
+                closingPrices.get(0);
+
+        BigDecimal poleLossPercent =
+                startingPrice
+                        .subtract(poleTrough)
+                        .divide(
+                                startingPrice,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        if (poleLossPercent.compareTo(
+                BigDecimal.valueOf(5)
+        ) < 0) {
+            return false;
+        }
+
+        for (int i = 1;
+             i <= poleTroughIndex;
+             i++) {
+
+            if (closingPrices.get(i).compareTo(
+                    closingPrices.get(i - 1)
+            ) >= 0) {
+                return false;
+            }
+        }
+
+        int consolidationStart =
+                poleTroughIndex + 1;
+
+        int consolidationEnd =
+                breakdownIndex - 1;
+
+        int consolidationSize =
+                consolidationEnd - consolidationStart + 1;
+
+        if (consolidationSize < 4) {
+            return false;
+        }
+
+        BigDecimal consolidationHigh =
+                closingPrices.get(consolidationStart);
+
+        BigDecimal consolidationLow =
+                closingPrices.get(consolidationStart);
+
+        for (int i = consolidationStart;
+             i <= consolidationEnd;
+             i++) {
+
+            BigDecimal price =
+                    closingPrices.get(i);
+
+            consolidationHigh =
+                    consolidationHigh.max(price);
+
+            consolidationLow =
+                    consolidationLow.min(price);
+
+            if (price.compareTo(poleTrough) <= 0) {
+                return false;
+            }
+        }
+
+        BigDecimal poleHeight =
+                startingPrice.subtract(poleTrough);
+
+        BigDecimal consolidationRange =
+                consolidationHigh.subtract(consolidationLow);
+
+        if (consolidationRange.compareTo(BigDecimal.ZERO) <= 0
+                || consolidationRange.compareTo(
+                poleHeight.multiply(new BigDecimal("0.50"))
+        ) > 0) {
+            return false;
+        }
+
+        int midpoint =
+                consolidationStart + consolidationSize / 2;
+
+        BigDecimal firstHalfHigh =
+                closingPrices.get(consolidationStart);
+
+        BigDecimal firstHalfLow =
+                closingPrices.get(consolidationStart);
+
+        for (int i = consolidationStart;
+             i < midpoint;
+             i++) {
+
+            firstHalfHigh =
+                    firstHalfHigh.max(closingPrices.get(i));
+
+            firstHalfLow =
+                    firstHalfLow.min(closingPrices.get(i));
+        }
+
+        BigDecimal secondHalfHigh =
+                closingPrices.get(midpoint);
+
+        BigDecimal secondHalfLow =
+                closingPrices.get(midpoint);
+
+        for (int i = midpoint;
+             i <= consolidationEnd;
+             i++) {
+
+            secondHalfHigh =
+                    secondHalfHigh.max(closingPrices.get(i));
+
+            secondHalfLow =
+                    secondHalfLow.min(closingPrices.get(i));
+        }
+
+        BigDecimal firstHalfRange =
+                firstHalfHigh.subtract(firstHalfLow);
+
+        BigDecimal secondHalfRange =
+                secondHalfHigh.subtract(secondHalfLow);
+
+        if (firstHalfRange.compareTo(BigDecimal.ZERO) <= 0
+                || secondHalfRange.compareTo(BigDecimal.ZERO) <= 0
+                || secondHalfRange.compareTo(firstHalfRange) >= 0) {
+            return false;
+        }
+
+        BigDecimal breakdownPrice =
+                closingPrices.get(breakdownIndex);
+
+        if (breakdownPrice.compareTo(poleTrough) >= 0) {
+            return false;
+        }
+
+        BigDecimal breakdownPercent =
+                poleTrough
+                        .subtract(breakdownPrice)
+                        .divide(
+                                poleTrough,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(BigDecimal.valueOf(100));
+
+        return breakdownPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+
     private List<BigDecimal> buildMacdSeries(
             List<BigDecimal> prices,
             int fastPeriod,
