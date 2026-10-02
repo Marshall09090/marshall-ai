@@ -823,3 +823,19 @@ Feature: Nexora technical indicators
       | 99.00  |
     When I analyze the prices for a Bearish Rectangle pattern
     Then the Bearish Rectangle pattern should be detected
+
+  Scenario: Detect Ascending Channel pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 105.00 |
+      | 102.00 |
+      | 107.00 |
+      | 104.00 |
+      | 109.00 |
+      | 106.00 |
+      | 111.00 |
+      | 108.00 |
+      | 113.00 |
+    When I analyze the prices for an Ascending Channel pattern
+    Then the Ascending Channel pattern should be detected

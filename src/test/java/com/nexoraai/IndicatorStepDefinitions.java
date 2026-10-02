@@ -87,6 +87,7 @@ public class IndicatorStepDefinitions {
     private boolean tripleBottomDetected;
     private boolean bullishRectangleDetected;
     private boolean bearishRectangleDetected;
+    private boolean ascendingChannelDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1754,6 +1755,28 @@ public class IndicatorStepDefinitions {
                 true,
                 bearishRectangleDetected,
                 "Bearish Rectangle pattern was not detected"
+        );
+    }
+    // =========================
+    // ASCENDING CHANNEL PATTERN
+    // =========================
+
+    @When("I analyze the prices for an Ascending Channel pattern")
+    public void analyzePricesForAscendingChannelPattern() {
+
+        ascendingChannelDetected =
+                indicatorService.detectAscendingChannel(
+                        closingPrices
+                );
+    }
+
+    @Then("the Ascending Channel pattern should be detected")
+    public void ascendingChannelPatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                ascendingChannelDetected,
+                "Ascending Channel pattern was not detected"
         );
     }
 }
