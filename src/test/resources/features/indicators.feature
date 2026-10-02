@@ -795,3 +795,17 @@ Feature: Nexora technical indicators
       | 112.00 |
     When I analyze the prices for a Triple Bottom pattern
     Then the Triple Bottom pattern should be detected
+
+  Scenario: Detect Bullish Rectangle pattern
+    Given the following closing prices:
+      | price  |
+      | 100.00 |
+      | 110.00 |
+      | 102.00 |
+      | 109.50 |
+      | 101.50 |
+      | 110.20 |
+      | 102.20 |
+      | 112.50 |
+    When I analyze the prices for a Bullish Rectangle pattern
+    Then the Bullish Rectangle pattern should be detected
