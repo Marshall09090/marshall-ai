@@ -809,3 +809,17 @@ Feature: Nexora technical indicators
       | 112.50 |
     When I analyze the prices for a Bullish Rectangle pattern
     Then the Bullish Rectangle pattern should be detected
+
+  Scenario: Detect Bearish Rectangle pattern
+    Given the following closing prices:
+      | price  |
+      | 112.00 |
+      | 102.00 |
+      | 110.00 |
+      | 102.50 |
+      | 109.50 |
+      | 101.80 |
+      | 109.00 |
+      | 99.00  |
+    When I analyze the prices for a Bearish Rectangle pattern
+    Then the Bearish Rectangle pattern should be detected

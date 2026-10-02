@@ -86,6 +86,7 @@ public class IndicatorStepDefinitions {
     private boolean tripleTopDetected;
     private boolean tripleBottomDetected;
     private boolean bullishRectangleDetected;
+    private boolean bearishRectangleDetected;
 
     @Given("the following closing prices:")
     public void theFollowingClosingPrices(DataTable dataTable) {
@@ -1731,6 +1732,28 @@ public class IndicatorStepDefinitions {
                 true,
                 tripleBottomDetected,
                 "Triple Bottom pattern was not detected"
+        );
+    }
+    // =========================
+    // BEARISH RECTANGLE PATTERN
+    // =========================
+
+    @When("I analyze the prices for a Bearish Rectangle pattern")
+    public void analyzePricesForBearishRectanglePattern() {
+
+        bearishRectangleDetected =
+                indicatorService.detectBearishRectangle(
+                        closingPrices
+                );
+    }
+
+    @Then("the Bearish Rectangle pattern should be detected")
+    public void bearishRectanglePatternShouldBeDetected() {
+
+        assertEquals(
+                true,
+                bearishRectangleDetected,
+                "Bearish Rectangle pattern was not detected"
         );
     }
 }

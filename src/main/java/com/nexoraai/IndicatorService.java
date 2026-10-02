@@ -7495,6 +7495,7 @@ public class IndicatorService {
 
         return false;
     }
+
     // =========================
     // BULLISH RECTANGLE PATTERN
     // =========================
@@ -7705,6 +7706,219 @@ public class IndicatorService {
                         );
 
         return breakoutPercent.compareTo(
+                BigDecimal.ONE
+        ) >= 0;
+    }
+    // =========================
+    // BEARISH RECTANGLE PATTERN
+    // =========================
+
+    public boolean detectBearishRectangle(
+            List<BigDecimal> closingPrices) {
+
+        if (closingPrices == null) {
+            throw new IllegalArgumentException(
+                    "Bearish Rectangle closing prices cannot be null"
+            );
+        }
+
+        if (closingPrices.size() < 8) {
+            return false;
+        }
+
+        for (BigDecimal price : closingPrices) {
+
+            if (price == null) {
+                throw new IllegalArgumentException(
+                        "Bearish Rectangle closing prices cannot contain null values"
+                );
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Bearish Rectangle closing prices must be greater than zero"
+                );
+            }
+        }
+
+        int breakdownIndex =
+                closingPrices.size() - 1;
+
+        List<BigDecimal> resistancePeaks =
+                new ArrayList<>();
+
+        List<BigDecimal> supportTroughs =
+                new ArrayList<>();
+
+        for (int i = 1;
+             i < breakdownIndex;
+             i++) {
+
+            BigDecimal previous =
+                    closingPrices.get(i - 1);
+
+            BigDecimal current =
+                    closingPrices.get(i);
+
+            BigDecimal next =
+                    closingPrices.get(i + 1);
+
+            if (current.compareTo(previous) > 0
+                    && current.compareTo(next) > 0) {
+
+                resistancePeaks.add(current);
+            }
+
+            if (current.compareTo(previous) < 0
+                    && current.compareTo(next) < 0) {
+
+                supportTroughs.add(current);
+            }
+        }
+
+        if (resistancePeaks.size() < 2
+                || supportTroughs.size() < 2) {
+
+            return false;
+        }
+
+        BigDecimal highestResistance =
+                resistancePeaks.get(0);
+
+        BigDecimal lowestResistance =
+                resistancePeaks.get(0);
+
+        for (BigDecimal peak : resistancePeaks) {
+
+            highestResistance =
+                    highestResistance.max(peak);
+
+            lowestResistance =
+                    lowestResistance.min(peak);
+        }
+
+        BigDecimal resistanceVariationPercent =
+                highestResistance
+                        .subtract(lowestResistance)
+                        .divide(
+                                highestResistance,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (resistanceVariationPercent.compareTo(
+                BigDecimal.ONE
+        ) > 0) {
+
+            return false;
+        }
+
+        BigDecimal highestSupport =
+                supportTroughs.get(0);
+
+        BigDecimal lowestSupport =
+                supportTroughs.get(0);
+
+        for (BigDecimal trough : supportTroughs) {
+
+            highestSupport =
+                    highestSupport.max(trough);
+
+            lowestSupport =
+                    lowestSupport.min(trough);
+        }
+
+        BigDecimal supportVariationPercent =
+                highestSupport
+                        .subtract(lowestSupport)
+                        .divide(
+                                highestSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (supportVariationPercent.compareTo(
+                BigDecimal.ONE
+        ) > 0) {
+
+            return false;
+        }
+
+        BigDecimal averageResistance =
+                highestResistance
+                        .add(lowestResistance)
+                        .divide(
+                                BigDecimal.valueOf(2),
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        BigDecimal averageSupport =
+                highestSupport
+                        .add(lowestSupport)
+                        .divide(
+                                BigDecimal.valueOf(2),
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        );
+
+        if (averageResistance.compareTo(
+                averageSupport
+        ) <= 0) {
+
+            return false;
+        }
+
+        BigDecimal rectangleHeightPercent =
+                averageResistance
+                        .subtract(averageSupport)
+                        .divide(
+                                averageSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        if (rectangleHeightPercent.compareTo(
+                BigDecimal.valueOf(2)
+        ) < 0) {
+
+            return false;
+        }
+
+        BigDecimal breakdownPrice =
+                closingPrices.get(
+                        breakdownIndex
+                );
+
+        if (breakdownPrice.compareTo(
+                lowestSupport
+        ) >= 0) {
+
+            return false;
+        }
+
+        BigDecimal breakdownPercent =
+                lowestSupport
+                        .subtract(breakdownPrice)
+                        .divide(
+                                lowestSupport,
+                                SCALE,
+                                RoundingMode.HALF_UP
+                        )
+                        .multiply(
+                                BigDecimal.valueOf(100)
+                        );
+
+        return breakdownPercent.compareTo(
                 BigDecimal.ONE
         ) >= 0;
     }
