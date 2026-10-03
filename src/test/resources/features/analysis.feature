@@ -281,3 +281,32 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Rising Wedge" pattern
     And the market analysis direction should be "BEARISH"
+  Scenario: Analyze market prices and identify a triple bottom
+    Given the following market analysis closing prices:
+      | price  |
+      | 110.00 |
+      | 100.00 |
+      | 106.00 |
+      | 101.00 |
+      | 103.50 |
+      | 100.50 |
+      | 106.00 |
+      | 108.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Triple Bottom" pattern
+    And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a falling wedge
+    Given the following market analysis closing prices:
+      | price  |
+      | 110.00 |
+      | 100.00 |
+      | 108.00 |
+      | 99.00  |
+      | 106.00 |
+      | 98.00  |
+      | 104.00 |
+      | 107.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Falling Wedge" pattern
+    And the market analysis direction should be "BULLISH"

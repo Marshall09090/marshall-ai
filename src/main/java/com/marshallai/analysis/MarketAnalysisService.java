@@ -28,9 +28,7 @@ public class MarketAnalysisService {
         // BULLISH RECTANGLE
         // =========================
 
-        if (indicatorService.detectBullishRectangle(
-                closingPrices)) {
-
+        if (indicatorService.detectBullishRectangle(closingPrices)) {
             detectedPatterns.add("Bullish Rectangle");
         }
 
@@ -38,9 +36,7 @@ public class MarketAnalysisService {
         // BEARISH RECTANGLE
         // =========================
 
-        if (indicatorService.detectBearishRectangle(
-                closingPrices)) {
-
+        if (indicatorService.detectBearishRectangle(closingPrices)) {
             detectedPatterns.add("Bearish Rectangle");
         }
 
@@ -48,9 +44,7 @@ public class MarketAnalysisService {
         // ASCENDING CHANNEL
         // =========================
 
-        if (indicatorService.detectAscendingChannel(
-                closingPrices)) {
-
+        if (indicatorService.detectAscendingChannel(closingPrices)) {
             detectedPatterns.add("Ascending Channel");
         }
 
@@ -58,9 +52,7 @@ public class MarketAnalysisService {
         // DESCENDING CHANNEL
         // =========================
 
-        if (indicatorService.detectDescendingChannel(
-                closingPrices)) {
-
+        if (indicatorService.detectDescendingChannel(closingPrices)) {
             detectedPatterns.add("Descending Channel");
         }
 
@@ -68,9 +60,7 @@ public class MarketAnalysisService {
         // BULLISH PENNANT
         // =========================
 
-        if (indicatorService.detectBullishPennant(
-                closingPrices)) {
-
+        if (indicatorService.detectBullishPennant(closingPrices)) {
             detectedPatterns.add("Bullish Pennant");
         }
 
@@ -78,9 +68,7 @@ public class MarketAnalysisService {
         // BEARISH PENNANT
         // =========================
 
-        if (indicatorService.detectBearishPennant(
-                closingPrices)) {
-
+        if (indicatorService.detectBearishPennant(closingPrices)) {
             detectedPatterns.add("Bearish Pennant");
         }
 
@@ -88,9 +76,7 @@ public class MarketAnalysisService {
         // BULL FLAG
         // =========================
 
-        if (indicatorService.detectBullFlag(
-                closingPrices)) {
-
+        if (indicatorService.detectBullFlag(closingPrices)) {
             detectedPatterns.add("Bull Flag");
         }
 
@@ -98,9 +84,7 @@ public class MarketAnalysisService {
         // BEAR FLAG
         // =========================
 
-        if (indicatorService.detectBearFlag(
-                closingPrices)) {
-
+        if (indicatorService.detectBearFlag(closingPrices)) {
             detectedPatterns.add("Bear Flag");
         }
 
@@ -108,9 +92,7 @@ public class MarketAnalysisService {
         // BULLISH BREAKOUT
         // =========================
 
-        if (indicatorService.detectBullishBreakout(
-                closingPrices)) {
-
+        if (indicatorService.detectBullishBreakout(closingPrices)) {
             detectedPatterns.add("Bullish Breakout");
         }
 
@@ -118,9 +100,7 @@ public class MarketAnalysisService {
         // BEARISH BREAKDOWN
         // =========================
 
-        if (indicatorService.detectBearishBreakdown(
-                closingPrices)) {
-
+        if (indicatorService.detectBearishBreakdown(closingPrices)) {
             detectedPatterns.add("Bearish Breakdown");
         }
 
@@ -128,9 +108,7 @@ public class MarketAnalysisService {
         // DOUBLE TOP
         // =========================
 
-        if (indicatorService.detectDoubleTop(
-                closingPrices)) {
-
+        if (indicatorService.detectDoubleTop(closingPrices)) {
             detectedPatterns.add("Double Top");
         }
 
@@ -138,9 +116,7 @@ public class MarketAnalysisService {
         // DOUBLE BOTTOM
         // =========================
 
-        if (indicatorService.detectDoubleBottom(
-                closingPrices)) {
-
+        if (indicatorService.detectDoubleBottom(closingPrices)) {
             detectedPatterns.add("Double Bottom");
         }
 
@@ -148,19 +124,23 @@ public class MarketAnalysisService {
         // TRIPLE TOP
         // =========================
 
-        if (indicatorService.detectTripleTop(
-                closingPrices)) {
-
+        if (indicatorService.detectTripleTop(closingPrices)) {
             detectedPatterns.add("Triple Top");
+        }
+
+        // =========================
+        // TRIPLE BOTTOM
+        // =========================
+
+        if (indicatorService.detectTripleBottom(closingPrices)) {
+            detectedPatterns.add("Triple Bottom");
         }
 
         // =========================
         // HEAD AND SHOULDERS
         // =========================
 
-        if (indicatorService.detectHeadAndShoulders(
-                closingPrices)) {
-
+        if (indicatorService.detectHeadAndShoulders(closingPrices)) {
             detectedPatterns.add("Head and Shoulders");
         }
 
@@ -168,9 +148,7 @@ public class MarketAnalysisService {
         // INVERSE HEAD AND SHOULDERS
         // =========================
 
-        if (indicatorService.detectInverseHeadAndShoulders(
-                closingPrices)) {
-
+        if (indicatorService.detectInverseHeadAndShoulders(closingPrices)) {
             detectedPatterns.add("Inverse Head and Shoulders");
         }
 
@@ -178,9 +156,7 @@ public class MarketAnalysisService {
         // ASCENDING TRIANGLE
         // =========================
 
-        if (indicatorService.detectAscendingTriangle(
-                closingPrices)) {
-
+        if (indicatorService.detectAscendingTriangle(closingPrices)) {
             detectedPatterns.add("Ascending Triangle");
         }
 
@@ -188,9 +164,7 @@ public class MarketAnalysisService {
         // DESCENDING TRIANGLE
         // =========================
 
-        if (indicatorService.detectDescendingTriangle(
-                closingPrices)) {
-
+        if (indicatorService.detectDescendingTriangle(closingPrices)) {
             detectedPatterns.add("Descending Triangle");
         }
 
@@ -198,9 +172,7 @@ public class MarketAnalysisService {
         // SYMMETRICAL TRIANGLE
         // =========================
 
-        if (indicatorService.detectSymmetricalTriangle(
-                closingPrices)) {
-
+        if (indicatorService.detectSymmetricalTriangle(closingPrices)) {
             detectedPatterns.add("Symmetrical Triangle");
         }
 
@@ -208,10 +180,16 @@ public class MarketAnalysisService {
         // RISING WEDGE
         // =========================
 
-        if (indicatorService.detectRisingWedge(
-                closingPrices)) {
-
+        if (indicatorService.detectRisingWedge(closingPrices)) {
             detectedPatterns.add("Rising Wedge");
+        }
+
+        // =========================
+        // FALLING WEDGE
+        // =========================
+
+        if (indicatorService.detectFallingWedge(closingPrices)) {
+            detectedPatterns.add("Falling Wedge");
         }
 
         // =========================
@@ -225,8 +203,10 @@ public class MarketAnalysisService {
                         || detectedPatterns.contains("Bull Flag")
                         || detectedPatterns.contains("Bullish Breakout")
                         || detectedPatterns.contains("Double Bottom")
+                        || detectedPatterns.contains("Triple Bottom")
                         || detectedPatterns.contains("Inverse Head and Shoulders")
-                        || detectedPatterns.contains("Ascending Triangle");
+                        || detectedPatterns.contains("Ascending Triangle")
+                        || detectedPatterns.contains("Falling Wedge");
 
         boolean bearishSignal =
                 detectedPatterns.contains("Bearish Rectangle")
