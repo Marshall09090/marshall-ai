@@ -61,6 +61,30 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // DESCENDING CHANNEL
+        // =========================
+
+        if (indicatorService.detectDescendingChannel(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Descending Channel"
+            );
+        }
+
+        // =========================
+        // BULLISH PENNANT
+        // =========================
+
+        if (indicatorService.detectBullishPennant(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bullish Pennant"
+            );
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -70,11 +94,17 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Ascending Channel"
+                )
+                        || detectedPatterns.contains(
+                        "Bullish Pennant"
                 );
 
         boolean bearishSignal =
                 detectedPatterns.contains(
                         "Bearish Rectangle"
+                )
+                        || detectedPatterns.contains(
+                        "Descending Channel"
                 );
 
         MarketAnalysisResult.Direction direction;

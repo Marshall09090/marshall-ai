@@ -46,3 +46,35 @@ Feature: Nexora market analysis engine
     When Nexora analyzes the market
     Then the market analysis should contain the "Ascending Channel" pattern
     And the market analysis direction should be "BULLISH"
+  Scenario: Analyze market prices and identify a descending channel
+    Given the following market analysis closing prices:
+      | price  |
+      | 113.00 |
+      | 108.00 |
+      | 111.00 |
+      | 106.00 |
+      | 109.00 |
+      | 104.00 |
+      | 107.00 |
+      | 102.00 |
+      | 105.00 |
+      | 100.00 |
+    When Nexora analyzes the market
+    Then the market analysis should contain the "Descending Channel" pattern
+    And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify a bullish pennant
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 104.00 |
+      | 109.00 |
+      | 114.00 |
+      | 112.00 |
+      | 113.50 |
+      | 112.50 |
+      | 113.20 |
+      | 116.00 |
+    When Nexora analyzes the market
+    Then the market analysis should contain the "Bullish Pennant" pattern
+    And the market analysis direction should be "BULLISH"
