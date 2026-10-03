@@ -157,6 +157,30 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // DOUBLE BOTTOM
+        // =========================
+
+        if (indicatorService.detectDoubleBottom(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Double Bottom"
+            );
+        }
+
+        // =========================
+        // TRIPLE TOP
+        // =========================
+
+        if (indicatorService.detectTripleTop(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Triple Top"
+            );
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -175,6 +199,9 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Bullish Breakout"
+                )
+                        || detectedPatterns.contains(
+                        "Double Bottom"
                 );
 
         boolean bearishSignal =
@@ -195,6 +222,9 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Double Top"
+                )
+                        || detectedPatterns.contains(
+                        "Triple Top"
                 );
 
         MarketAnalysisResult.Direction direction;

@@ -164,3 +164,32 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Double Top" pattern
     And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify a double bottom
+    Given the following market analysis closing prices:
+      | price  |
+      | 110.00 |
+      | 100.00 |
+      | 106.00 |
+      | 101.00 |
+      | 105.00 |
+      | 107.00 |
+      | 109.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Double Bottom" pattern
+    And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a triple top
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 110.00 |
+      | 103.00 |
+      | 109.50 |
+      | 100.50 |
+      | 110.20 |
+      | 103.00 |
+      | 98.00  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Triple Top" pattern
+    And the market analysis direction should be "BEARISH"
