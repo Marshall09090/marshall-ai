@@ -24,6 +24,10 @@ public class MarketAnalysisService {
         List<String> detectedPatterns =
                 new ArrayList<>();
 
+        // =========================
+        // BULLISH RECTANGLE
+        // =========================
+
         if (indicatorService.detectBullishRectangle(
                 closingPrices)) {
 
@@ -32,10 +36,64 @@ public class MarketAnalysisService {
             );
         }
 
-        MarketAnalysisResult.Direction direction =
-                detectedPatterns.isEmpty()
-                        ? MarketAnalysisResult.Direction.NEUTRAL
-                        : MarketAnalysisResult.Direction.BULLISH;
+        // =========================
+        // BEARISH RECTANGLE
+        // =========================
+
+        if (indicatorService.detectBearishRectangle(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bearish Rectangle"
+            );
+        }
+
+        // =========================
+        // ASCENDING CHANNEL
+        // =========================
+
+        if (indicatorService.detectAscendingChannel(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Ascending Channel"
+            );
+        }
+
+        // =========================
+        // MARKET DIRECTION
+        // =========================
+
+        boolean bullishSignal =
+                detectedPatterns.contains(
+                        "Bullish Rectangle"
+                )
+                        || detectedPatterns.contains(
+                        "Ascending Channel"
+                );
+
+        boolean bearishSignal =
+                detectedPatterns.contains(
+                        "Bearish Rectangle"
+                );
+
+        MarketAnalysisResult.Direction direction;
+
+        if (bullishSignal && !bearishSignal) {
+
+            direction =
+                    MarketAnalysisResult.Direction.BULLISH;
+
+        } else if (bearishSignal && !bullishSignal) {
+
+            direction =
+                    MarketAnalysisResult.Direction.BEARISH;
+
+        } else {
+
+            direction =
+                    MarketAnalysisResult.Direction.NEUTRAL;
+        }
 
         return new MarketAnalysisResult(
                 detectedPatterns,
