@@ -310,3 +310,39 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Falling Wedge" pattern
     And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a cup and handle
+    Given the following market analysis closing prices:
+      | price  |
+      | 110.00 |
+      | 105.00 |
+      | 100.00 |
+      | 95.00  |
+      | 100.00 |
+      | 105.00 |
+      | 109.00 |
+      | 107.00 |
+      | 106.00 |
+      | 108.00 |
+      | 112.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Cup and Handle" pattern
+    And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify an inverse cup and handle
+    Given the following market analysis closing prices:
+      | price  |
+      | 90.00  |
+      | 95.00  |
+      | 100.00 |
+      | 105.00 |
+      | 100.00 |
+      | 95.00  |
+      | 91.00  |
+      | 93.00  |
+      | 94.00  |
+      | 92.00  |
+      | 88.00  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Inverse Cup and Handle" pattern
+    And the market analysis direction should be "BEARISH"

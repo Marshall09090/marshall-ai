@@ -193,6 +193,22 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // CUP AND HANDLE
+        // =========================
+
+        if (indicatorService.detectCupAndHandle(closingPrices)) {
+            detectedPatterns.add("Cup and Handle");
+        }
+
+        // =========================
+        // INVERSE CUP AND HANDLE
+        // =========================
+
+        if (indicatorService.detectInverseCupAndHandle(closingPrices)) {
+            detectedPatterns.add("Inverse Cup and Handle");
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -206,7 +222,8 @@ public class MarketAnalysisService {
                         || detectedPatterns.contains("Triple Bottom")
                         || detectedPatterns.contains("Inverse Head and Shoulders")
                         || detectedPatterns.contains("Ascending Triangle")
-                        || detectedPatterns.contains("Falling Wedge");
+                        || detectedPatterns.contains("Falling Wedge")
+                        || detectedPatterns.contains("Cup and Handle");
 
         boolean bearishSignal =
                 detectedPatterns.contains("Bearish Rectangle")
@@ -218,7 +235,8 @@ public class MarketAnalysisService {
                         || detectedPatterns.contains("Triple Top")
                         || detectedPatterns.contains("Head and Shoulders")
                         || detectedPatterns.contains("Descending Triangle")
-                        || detectedPatterns.contains("Rising Wedge");
+                        || detectedPatterns.contains("Rising Wedge")
+                        || detectedPatterns.contains("Inverse Cup and Handle");
 
         MarketAnalysisResult.Direction direction;
 
