@@ -1,4 +1,4 @@
-package com.nexoraai.analysis;
+package com.marshallai.analysis;
 
 import java.util.List;
 import java.util.Objects;

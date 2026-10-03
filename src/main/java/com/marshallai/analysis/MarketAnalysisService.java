@@ -1,6 +1,6 @@
-package com.nexoraai.analysis;
+package com.marshallai.analysis;
 
-import com.nexoraai.indicator.IndicatorService;
+import com.marshallai.indicator.IndicatorService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

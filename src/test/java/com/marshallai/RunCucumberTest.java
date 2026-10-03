@@ -1,4 +1,4 @@
-package com.nexoraai;
+package com.marshallai;
 
 import io.cucumber.junit.platform.engine.Constants;
 import org.junit.platform.suite.api.ConfigurationParameter;
@@ -11,7 +11,7 @@ import org.junit.platform.suite.api.Suite;
 @SelectClasspathResource("features")
 @ConfigurationParameter(
         key = Constants.GLUE_PROPERTY_NAME,
-        value = "com.nexoraai"
+        value = "com.marshallai"
 )
 public class RunCucumberTest {
 }

@@ -1,4 +1,4 @@
-Feature: Nexora technical indicators
+Feature: Marshall technical indicators
 
   Scenario: Calculate a simple moving average
     Given the following closing prices:
@@ -855,3 +855,4 @@ Feature: Nexora technical indicators
       | 100.00 |
     When I analyze the prices for a Descending Channel pattern
     Then the Descending Channel pattern should be detected
+

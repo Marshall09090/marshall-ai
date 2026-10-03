@@ -1,9 +1,9 @@
-package com.nexoraai;
+package com.marshallai;
 
-import com.nexoraai.market.AssetType;
-import com.nexoraai.market.MarketCandle;
-import com.nexoraai.market.MarketDataService;
-import com.nexoraai.market.MarketQuote;
+import com.marshallai.market.AssetType;
+import com.marshallai.market.MarketCandle;
+import com.marshallai.market.MarketDataService;
+import com.marshallai.market.MarketQuote;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;

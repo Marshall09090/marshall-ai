@@ -1,4 +1,4 @@
-package com.nexoraai.market;
+package com.marshallai.market;
 
 import org.springframework.stereotype.Service;
 

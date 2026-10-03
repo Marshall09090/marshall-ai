@@ -1,4 +1,4 @@
-Feature: Nexora market analysis engine
+Feature: MarshallAi market analysis engine
 
   Scenario: Analyze market prices and identify a bullish chart pattern
     Given the following market analysis closing prices:
@@ -11,7 +11,7 @@ Feature: Nexora market analysis engine
       | 110.20 |
       | 102.20 |
       | 112.50 |
-    When Nexora analyzes the market
+    When MarshallAi analyzes the market
     Then the market analysis should contain the "Bullish Rectangle" pattern
     And the market analysis direction should be "BULLISH"
 
@@ -26,7 +26,7 @@ Feature: Nexora market analysis engine
       | 101.80 |
       | 109.00 |
       | 99.00  |
-    When Nexora analyzes the market
+    When MarshallAi analyzes the market
     Then the market analysis should contain the "Bearish Rectangle" pattern
     And the market analysis direction should be "BEARISH"
 
@@ -43,9 +43,10 @@ Feature: Nexora market analysis engine
       | 111.00 |
       | 108.00 |
       | 113.00 |
-    When Nexora analyzes the market
+    When MarshallAi analyzes the market
     Then the market analysis should contain the "Ascending Channel" pattern
     And the market analysis direction should be "BULLISH"
+
   Scenario: Analyze market prices and identify a descending channel
     Given the following market analysis closing prices:
       | price  |
@@ -59,7 +60,7 @@ Feature: Nexora market analysis engine
       | 102.00 |
       | 105.00 |
       | 100.00 |
-    When Nexora analyzes the market
+    When MarshallAi analyzes the market
     Then the market analysis should contain the "Descending Channel" pattern
     And the market analysis direction should be "BEARISH"
 
@@ -75,6 +76,6 @@ Feature: Nexora market analysis engine
       | 112.50 |
       | 113.20 |
       | 116.00 |
-    When Nexora analyzes the market
+    When MarshallAi analyzes the market
     Then the market analysis should contain the "Bullish Pennant" pattern
     And the market analysis direction should be "BULLISH"

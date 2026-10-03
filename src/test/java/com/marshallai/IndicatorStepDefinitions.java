@@ -1,6 +1,6 @@
-package com.nexoraai;
+package com.marshallai;
 
-import com.nexoraai.indicator.IndicatorService;
+import com.marshallai.indicator.IndicatorService;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

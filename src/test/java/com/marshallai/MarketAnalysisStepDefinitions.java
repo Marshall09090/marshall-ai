@@ -1,7 +1,7 @@
-package com.nexoraai;
+package com.marshallai;
 
-import com.nexoraai.analysis.MarketAnalysisResult;
-import com.nexoraai.analysis.MarketAnalysisService;
+import com.marshallai.analysis.MarketAnalysisResult;
+import com.marshallai.analysis.MarketAnalysisService;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -25,23 +25,18 @@ public class MarketAnalysisStepDefinitions {
     private MarketAnalysisResult marketAnalysisResult;
 
     @Given("the following market analysis closing prices:")
-    public void theFollowingMarketAnalysisClosingPrices(
-            DataTable dataTable) {
+    public void theFollowingMarketAnalysisClosingPrices(DataTable dataTable) {
 
         marketAnalysisClosingPrices =
                 dataTable
                         .asMaps(String.class, String.class)
                         .stream()
-                        .map(row ->
-                                new BigDecimal(
-                                        row.get("price")
-                                )
-                        )
+                        .map(row -> new BigDecimal(row.get("price")))
                         .toList();
     }
 
-    @When("Nexora analyzes the market")
-    public void nexoraAnalyzesTheMarket() {
+    @When("MarshallAi analyzes the market")
+    public void marshallAiAnalyzesTheMarket() {
 
         marketAnalysisResult =
                 marketAnalysisService.analyze(
@@ -50,8 +45,7 @@ public class MarketAnalysisStepDefinitions {
     }
 
     @Then("the market analysis should contain the {string} pattern")
-    public void marketAnalysisShouldContainPattern(
-            String patternName) {
+    public void marketAnalysisShouldContainPattern(String patternName) {
 
         assertNotNull(
                 marketAnalysisResult,
@@ -62,14 +56,12 @@ public class MarketAnalysisStepDefinitions {
                 marketAnalysisResult
                         .getDetectedPatterns()
                         .contains(patternName),
-                "Expected market analysis to contain pattern: "
-                        + patternName
+                "Expected market analysis to contain pattern: " + patternName
         );
     }
 
     @Then("the market analysis direction should be {string}")
-    public void marketAnalysisDirectionShouldBe(
-            String expectedDirection) {
+    public void marketAnalysisDirectionShouldBe(String expectedDirection) {
 
         assertNotNull(
                 marketAnalysisResult,

@@ -1,4 +1,4 @@
-package com.nexoraai.controller;
+package com.marshallai.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,7 +13,7 @@ public class StatusController {
     @GetMapping("/status")
     public Map<String, String> getStatus() {
         return Map.of(
-                "name", "Nexora AI",
+                "name", "MarshallAi",
                 "status", "ONLINE"
         );
     }

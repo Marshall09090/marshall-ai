@@ -1,4 +1,4 @@
-package com.nexoraai;
+package com.marshallai;
 
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;

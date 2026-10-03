@@ -1,4 +1,4 @@
-package com.nexoraai.indicator;
+package com.marshallai.indicator;
 
 import org.springframework.stereotype.Service;
 
