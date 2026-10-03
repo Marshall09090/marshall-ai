@@ -6,11 +6,11 @@ Feature: MarshallAi market analysis engine
       | 100.00 |
       | 110.00 |
       | 102.00 |
-      | 109.50 |
-      | 101.50 |
-      | 110.20 |
-      | 102.20 |
-      | 112.50 |
+      | 109.80 |
+      | 102.50 |
+      | 110.10 |
+      | 102.80 |
+      | 112.00 |
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Bullish Rectangle" pattern
     And the market analysis direction should be "BULLISH"
@@ -136,3 +136,31 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Bullish Breakout" pattern
     And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a bearish breakdown
+    Given the following market analysis closing prices:
+      | price  |
+      | 105.00 |
+      | 104.00 |
+      | 103.00 |
+      | 103.50 |
+      | 102.50 |
+      | 102.00 |
+      | 99.50  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Bearish Breakdown" pattern
+    And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify a double top
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 104.00 |
+      | 108.00 |
+      | 104.00 |
+      | 108.20 |
+      | 103.00 |
+      | 99.00  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Double Top" pattern
+    And the market analysis direction should be "BEARISH"

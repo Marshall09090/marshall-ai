@@ -133,6 +133,30 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // BEARISH BREAKDOWN
+        // =========================
+
+        if (indicatorService.detectBearishBreakdown(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bearish Breakdown"
+            );
+        }
+
+        // =========================
+        // DOUBLE TOP
+        // =========================
+
+        if (indicatorService.detectDoubleTop(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Double Top"
+            );
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -165,6 +189,12 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Bear Flag"
+                )
+                        || detectedPatterns.contains(
+                        "Bearish Breakdown"
+                )
+                        || detectedPatterns.contains(
+                        "Double Top"
                 );
 
         MarketAnalysisResult.Direction direction;
