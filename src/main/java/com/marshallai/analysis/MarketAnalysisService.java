@@ -85,6 +85,30 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // BEARISH PENNANT
+        // =========================
+
+        if (indicatorService.detectBearishPennant(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bearish Pennant"
+            );
+        }
+
+        // =========================
+        // BULL FLAG
+        // =========================
+
+        if (indicatorService.detectBullFlag(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bull Flag"
+            );
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -97,6 +121,9 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Bullish Pennant"
+                )
+                        || detectedPatterns.contains(
+                        "Bull Flag"
                 );
 
         boolean bearishSignal =
@@ -105,6 +132,9 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Descending Channel"
+                )
+                        || detectedPatterns.contains(
+                        "Bearish Pennant"
                 );
 
         MarketAnalysisResult.Direction direction;
