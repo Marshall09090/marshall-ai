@@ -346,3 +346,37 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Inverse Cup and Handle" pattern
     And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify a rounding bottom
+    Given the following market analysis closing prices:
+      | price  |
+      | 110.00 |
+      | 104.00 |
+      | 100.00 |
+      | 97.00  |
+      | 95.00  |
+      | 96.00  |
+      | 98.00  |
+      | 102.00 |
+      | 108.00 |
+      | 112.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Rounding Bottom" pattern
+    And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a rounding top
+    Given the following market analysis closing prices:
+      | price  |
+      | 90.00  |
+      | 96.00  |
+      | 100.00 |
+      | 103.00 |
+      | 105.00 |
+      | 104.00 |
+      | 102.00 |
+      | 98.00  |
+      | 92.00  |
+      | 88.00  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Rounding Top" pattern
+    And the market analysis direction should be "BEARISH"
