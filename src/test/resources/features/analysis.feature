@@ -251,3 +251,33 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Descending Triangle" pattern
     And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify a symmetrical triangle
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 110.00 |
+      | 102.00 |
+      | 108.00 |
+      | 104.00 |
+      | 106.00 |
+      | 105.00 |
+      | 112.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Symmetrical Triangle" pattern
+    And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a rising wedge
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 110.00 |
+      | 102.00 |
+      | 108.00 |
+      | 104.00 |
+      | 106.00 |
+      | 105.00 |
+      | 99.00  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Rising Wedge" pattern
+    And the market analysis direction should be "BEARISH"

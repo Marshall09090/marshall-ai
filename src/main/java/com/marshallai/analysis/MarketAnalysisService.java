@@ -195,6 +195,26 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // SYMMETRICAL TRIANGLE
+        // =========================
+
+        if (indicatorService.detectSymmetricalTriangle(
+                closingPrices)) {
+
+            detectedPatterns.add("Symmetrical Triangle");
+        }
+
+        // =========================
+        // RISING WEDGE
+        // =========================
+
+        if (indicatorService.detectRisingWedge(
+                closingPrices)) {
+
+            detectedPatterns.add("Rising Wedge");
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -217,7 +237,8 @@ public class MarketAnalysisService {
                         || detectedPatterns.contains("Double Top")
                         || detectedPatterns.contains("Triple Top")
                         || detectedPatterns.contains("Head and Shoulders")
-                        || detectedPatterns.contains("Descending Triangle");
+                        || detectedPatterns.contains("Descending Triangle")
+                        || detectedPatterns.contains("Rising Wedge");
 
         MarketAnalysisResult.Direction direction;
 
