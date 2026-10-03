@@ -193,3 +193,31 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Triple Top" pattern
     And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify head and shoulders
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 110.00 |
+      | 103.00 |
+      | 116.00 |
+      | 102.50 |
+      | 109.00 |
+      | 100.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Head and Shoulders" pattern
+    And the market analysis direction should be "BEARISH"
+
+  Scenario: Analyze market prices and identify inverse head and shoulders
+    Given the following market analysis closing prices:
+      | price  |
+      | 120.00 |
+      | 110.00 |
+      | 117.00 |
+      | 104.00 |
+      | 117.50 |
+      | 111.00 |
+      | 120.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Inverse Head and Shoulders" pattern
+    And the market analysis direction should be "BULLISH"

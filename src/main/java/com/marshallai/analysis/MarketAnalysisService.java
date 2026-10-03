@@ -31,9 +31,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBullishRectangle(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bullish Rectangle"
-            );
+            detectedPatterns.add("Bullish Rectangle");
         }
 
         // =========================
@@ -43,9 +41,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBearishRectangle(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bearish Rectangle"
-            );
+            detectedPatterns.add("Bearish Rectangle");
         }
 
         // =========================
@@ -55,9 +51,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectAscendingChannel(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Ascending Channel"
-            );
+            detectedPatterns.add("Ascending Channel");
         }
 
         // =========================
@@ -67,9 +61,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectDescendingChannel(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Descending Channel"
-            );
+            detectedPatterns.add("Descending Channel");
         }
 
         // =========================
@@ -79,9 +71,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBullishPennant(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bullish Pennant"
-            );
+            detectedPatterns.add("Bullish Pennant");
         }
 
         // =========================
@@ -91,9 +81,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBearishPennant(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bearish Pennant"
-            );
+            detectedPatterns.add("Bearish Pennant");
         }
 
         // =========================
@@ -103,9 +91,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBullFlag(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bull Flag"
-            );
+            detectedPatterns.add("Bull Flag");
         }
 
         // =========================
@@ -115,9 +101,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBearFlag(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bear Flag"
-            );
+            detectedPatterns.add("Bear Flag");
         }
 
         // =========================
@@ -127,9 +111,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBullishBreakout(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bullish Breakout"
-            );
+            detectedPatterns.add("Bullish Breakout");
         }
 
         // =========================
@@ -139,9 +121,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectBearishBreakdown(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Bearish Breakdown"
-            );
+            detectedPatterns.add("Bearish Breakdown");
         }
 
         // =========================
@@ -151,9 +131,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectDoubleTop(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Double Top"
-            );
+            detectedPatterns.add("Double Top");
         }
 
         // =========================
@@ -163,9 +141,7 @@ public class MarketAnalysisService {
         if (indicatorService.detectDoubleBottom(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Double Bottom"
-            );
+            detectedPatterns.add("Double Bottom");
         }
 
         // =========================
@@ -175,9 +151,27 @@ public class MarketAnalysisService {
         if (indicatorService.detectTripleTop(
                 closingPrices)) {
 
-            detectedPatterns.add(
-                    "Triple Top"
-            );
+            detectedPatterns.add("Triple Top");
+        }
+
+        // =========================
+        // HEAD AND SHOULDERS
+        // =========================
+
+        if (indicatorService.detectHeadAndShoulders(
+                closingPrices)) {
+
+            detectedPatterns.add("Head and Shoulders");
+        }
+
+        // =========================
+        // INVERSE HEAD AND SHOULDERS
+        // =========================
+
+        if (indicatorService.detectInverseHeadAndShoulders(
+                closingPrices)) {
+
+            detectedPatterns.add("Inverse Head and Shoulders");
         }
 
         // =========================
@@ -185,47 +179,23 @@ public class MarketAnalysisService {
         // =========================
 
         boolean bullishSignal =
-                detectedPatterns.contains(
-                        "Bullish Rectangle"
-                )
-                        || detectedPatterns.contains(
-                        "Ascending Channel"
-                )
-                        || detectedPatterns.contains(
-                        "Bullish Pennant"
-                )
-                        || detectedPatterns.contains(
-                        "Bull Flag"
-                )
-                        || detectedPatterns.contains(
-                        "Bullish Breakout"
-                )
-                        || detectedPatterns.contains(
-                        "Double Bottom"
-                );
+                detectedPatterns.contains("Bullish Rectangle")
+                        || detectedPatterns.contains("Ascending Channel")
+                        || detectedPatterns.contains("Bullish Pennant")
+                        || detectedPatterns.contains("Bull Flag")
+                        || detectedPatterns.contains("Bullish Breakout")
+                        || detectedPatterns.contains("Double Bottom")
+                        || detectedPatterns.contains("Inverse Head and Shoulders");
 
         boolean bearishSignal =
-                detectedPatterns.contains(
-                        "Bearish Rectangle"
-                )
-                        || detectedPatterns.contains(
-                        "Descending Channel"
-                )
-                        || detectedPatterns.contains(
-                        "Bearish Pennant"
-                )
-                        || detectedPatterns.contains(
-                        "Bear Flag"
-                )
-                        || detectedPatterns.contains(
-                        "Bearish Breakdown"
-                )
-                        || detectedPatterns.contains(
-                        "Double Top"
-                )
-                        || detectedPatterns.contains(
-                        "Triple Top"
-                );
+                detectedPatterns.contains("Bearish Rectangle")
+                        || detectedPatterns.contains("Descending Channel")
+                        || detectedPatterns.contains("Bearish Pennant")
+                        || detectedPatterns.contains("Bear Flag")
+                        || detectedPatterns.contains("Bearish Breakdown")
+                        || detectedPatterns.contains("Double Top")
+                        || detectedPatterns.contains("Triple Top")
+                        || detectedPatterns.contains("Head and Shoulders");
 
         MarketAnalysisResult.Direction direction;
 
