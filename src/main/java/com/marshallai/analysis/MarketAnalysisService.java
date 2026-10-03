@@ -109,6 +109,30 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // BEAR FLAG
+        // =========================
+
+        if (indicatorService.detectBearFlag(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bear Flag"
+            );
+        }
+
+        // =========================
+        // BULLISH BREAKOUT
+        // =========================
+
+        if (indicatorService.detectBullishBreakout(
+                closingPrices)) {
+
+            detectedPatterns.add(
+                    "Bullish Breakout"
+            );
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -124,6 +148,9 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Bull Flag"
+                )
+                        || detectedPatterns.contains(
+                        "Bullish Breakout"
                 );
 
         boolean bearishSignal =
@@ -135,6 +162,9 @@ public class MarketAnalysisService {
                 )
                         || detectedPatterns.contains(
                         "Bearish Pennant"
+                )
+                        || detectedPatterns.contains(
+                        "Bear Flag"
                 );
 
         MarketAnalysisResult.Direction direction;
