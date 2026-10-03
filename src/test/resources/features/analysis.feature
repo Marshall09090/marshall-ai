@@ -221,3 +221,33 @@ Feature: MarshallAi market analysis engine
     When MarshallAi analyzes the market
     Then the market analysis should contain the "Inverse Head and Shoulders" pattern
     And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify an ascending triangle
+    Given the following market analysis closing prices:
+      | price  |
+      | 100.00 |
+      | 105.00 |
+      | 101.50 |
+      | 105.20 |
+      | 102.50 |
+      | 105.10 |
+      | 103.80 |
+      | 107.00 |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Ascending Triangle" pattern
+    And the market analysis direction should be "BULLISH"
+
+  Scenario: Analyze market prices and identify a descending triangle
+    Given the following market analysis closing prices:
+      | price  |
+      | 110.00 |
+      | 100.00 |
+      | 108.00 |
+      | 100.20 |
+      | 106.00 |
+      | 99.90  |
+      | 104.00 |
+      | 98.00  |
+    When MarshallAi analyzes the market
+    Then the market analysis should contain the "Descending Triangle" pattern
+    And the market analysis direction should be "BEARISH"

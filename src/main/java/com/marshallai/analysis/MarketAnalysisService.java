@@ -175,6 +175,26 @@ public class MarketAnalysisService {
         }
 
         // =========================
+        // ASCENDING TRIANGLE
+        // =========================
+
+        if (indicatorService.detectAscendingTriangle(
+                closingPrices)) {
+
+            detectedPatterns.add("Ascending Triangle");
+        }
+
+        // =========================
+        // DESCENDING TRIANGLE
+        // =========================
+
+        if (indicatorService.detectDescendingTriangle(
+                closingPrices)) {
+
+            detectedPatterns.add("Descending Triangle");
+        }
+
+        // =========================
         // MARKET DIRECTION
         // =========================
 
@@ -185,7 +205,8 @@ public class MarketAnalysisService {
                         || detectedPatterns.contains("Bull Flag")
                         || detectedPatterns.contains("Bullish Breakout")
                         || detectedPatterns.contains("Double Bottom")
-                        || detectedPatterns.contains("Inverse Head and Shoulders");
+                        || detectedPatterns.contains("Inverse Head and Shoulders")
+                        || detectedPatterns.contains("Ascending Triangle");
 
         boolean bearishSignal =
                 detectedPatterns.contains("Bearish Rectangle")
@@ -195,7 +216,8 @@ public class MarketAnalysisService {
                         || detectedPatterns.contains("Bearish Breakdown")
                         || detectedPatterns.contains("Double Top")
                         || detectedPatterns.contains("Triple Top")
-                        || detectedPatterns.contains("Head and Shoulders");
+                        || detectedPatterns.contains("Head and Shoulders")
+                        || detectedPatterns.contains("Descending Triangle");
 
         MarketAnalysisResult.Direction direction;
 
