@@ -48,7 +48,68 @@ public class SignalService {
                     Map.entry("Descending Channel", 1)
             );
 
+    // =========================================================
+    // CHART-PATTERN-ONLY EVALUATION
+    // Keeps all existing signal.feature scenarios working.
+    // =========================================================
+
     public MarketSignal evaluate(
+            MarketAnalysisResult marketAnalysisResult) {
+
+        PatternEvidence patternEvidence =
+                calculatePatternEvidence(
+                        marketAnalysisResult
+                );
+
+        return buildMarketSignal(
+                patternEvidence.bullishSignalCount,
+                patternEvidence.bearishSignalCount,
+                patternEvidence.bullishWeightedScore,
+                patternEvidence.bearishWeightedScore
+        );
+    }
+
+    // =========================================================
+    // COMBINED EVALUATION
+    // Chart patterns + technical indicators.
+    // =========================================================
+
+    public MarketSignal evaluate(
+            MarketAnalysisResult marketAnalysisResult,
+            TechnicalSignal technicalSignal) {
+
+        if (technicalSignal == null) {
+            throw new IllegalArgumentException(
+                    "Technical signal cannot be null"
+            );
+        }
+
+        PatternEvidence patternEvidence =
+                calculatePatternEvidence(
+                        marketAnalysisResult
+                );
+
+        int combinedBullishWeightedScore =
+                patternEvidence.bullishWeightedScore
+                        + technicalSignal.getBullishWeightedScore();
+
+        int combinedBearishWeightedScore =
+                patternEvidence.bearishWeightedScore
+                        + technicalSignal.getBearishWeightedScore();
+
+        return buildMarketSignal(
+                patternEvidence.bullishSignalCount,
+                patternEvidence.bearishSignalCount,
+                combinedBullishWeightedScore,
+                combinedBearishWeightedScore
+        );
+    }
+
+    // =========================================================
+    // PATTERN EVIDENCE
+    // =========================================================
+
+    private PatternEvidence calculatePatternEvidence(
             MarketAnalysisResult marketAnalysisResult) {
 
         if (marketAnalysisResult == null) {
@@ -89,6 +150,24 @@ public class SignalService {
             }
         }
 
+        return new PatternEvidence(
+                bullishSignalCount,
+                bearishSignalCount,
+                bullishWeightedScore,
+                bearishWeightedScore
+        );
+    }
+
+    // =========================================================
+    // FINAL 80% DECISION ENGINE
+    // =========================================================
+
+    private MarketSignal buildMarketSignal(
+            int bullishSignalCount,
+            int bearishSignalCount,
+            int bullishWeightedScore,
+            int bearishWeightedScore) {
+
         int totalWeightedScore =
                 bullishWeightedScore
                         + bearishWeightedScore;
@@ -98,8 +177,8 @@ public class SignalService {
             return new MarketSignal(
                     MarketSignal.Decision.HOLD,
                     0,
-                    0,
-                    0,
+                    bullishSignalCount,
+                    bearishSignalCount,
                     0,
                     0
             );
@@ -121,7 +200,8 @@ public class SignalService {
         MarketSignal.Decision decision =
                 MarketSignal.Decision.HOLD;
 
-        if (confidencePercent >= MIN_TRADE_CONFIDENCE_PERCENT) {
+        if (confidencePercent
+                >= MIN_TRADE_CONFIDENCE_PERCENT) {
 
             if (bullishWeightedScore
                     > bearishWeightedScore) {
@@ -145,5 +225,37 @@ public class SignalService {
                 bullishWeightedScore,
                 bearishWeightedScore
         );
+    }
+
+    // =========================================================
+    // INTERNAL PATTERN RESULT
+    // =========================================================
+
+    private static class PatternEvidence {
+
+        private final int bullishSignalCount;
+        private final int bearishSignalCount;
+
+        private final int bullishWeightedScore;
+        private final int bearishWeightedScore;
+
+        private PatternEvidence(
+                int bullishSignalCount,
+                int bearishSignalCount,
+                int bullishWeightedScore,
+                int bearishWeightedScore) {
+
+            this.bullishSignalCount =
+                    bullishSignalCount;
+
+            this.bearishSignalCount =
+                    bearishSignalCount;
+
+            this.bullishWeightedScore =
+                    bullishWeightedScore;
+
+            this.bearishWeightedScore =
+                    bearishWeightedScore;
+        }
     }
 }
