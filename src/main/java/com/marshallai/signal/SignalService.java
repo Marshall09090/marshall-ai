@@ -1,6 +1,7 @@
 package com.marshallai.signal;
 
 import com.marshallai.analysis.MarketAnalysisResult;
+import com.marshallai.risk.EventRisk;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -50,7 +51,6 @@ public class SignalService {
 
     // =========================================================
     // CHART-PATTERN-ONLY EVALUATION
-    // Keeps all existing signal.feature scenarios working.
     // =========================================================
 
     public MarketSignal evaluate(
@@ -102,6 +102,46 @@ public class SignalService {
                 patternEvidence.bearishSignalCount,
                 combinedBullishWeightedScore,
                 combinedBearishWeightedScore
+        );
+    }
+
+    // =========================================================
+    // RISK-GATED COMBINED EVALUATION
+    // Chart patterns + technical indicators + event risk.
+    //
+    // HIGH or CRITICAL event risk blocks a new BUY/SELL
+    // decision and forces HOLD while preserving the
+    // underlying confidence and weighted evidence.
+    // =========================================================
+
+    public MarketSignal evaluate(
+            MarketAnalysisResult marketAnalysisResult,
+            TechnicalSignal technicalSignal,
+            EventRisk eventRisk) {
+
+        if (eventRisk == null) {
+            throw new IllegalArgumentException(
+                    "Event risk cannot be null"
+            );
+        }
+
+        MarketSignal underlyingSignal =
+                evaluate(
+                        marketAnalysisResult,
+                        technicalSignal
+                );
+
+        if (!eventRisk.isTradeBlocked()) {
+            return underlyingSignal;
+        }
+
+        return new MarketSignal(
+                MarketSignal.Decision.HOLD,
+                underlyingSignal.getConfidencePercent(),
+                underlyingSignal.getBullishSignalCount(),
+                underlyingSignal.getBearishSignalCount(),
+                underlyingSignal.getBullishWeightedScore(),
+                underlyingSignal.getBearishWeightedScore()
         );
     }
 

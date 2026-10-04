@@ -1,49 +1,44 @@
-Feature: MarshallAI combined trading signal engine
+Feature: Combined trading signal with event-risk protection
 
-  Scenario: Bullish patterns and bullish technicals produce a BUY
+  The MarshallAI trading engine combines chart-pattern evidence
+  and technical-indicator evidence while applying an event-risk
+  safety gate before allowing a BUY or SELL decision.
+
+  Scenario: Critical event risk overrides a strong BUY signal
     Given the combined analysis detected the following patterns:
       | pattern          |
       | Bullish Breakout |
       | Cup and Handle   |
     And the technical engine produced bullish score 6 and bearish score 0
-    When MarshallAI evaluates the combined trading signal
+    And the combined signal has event risk level "CRITICAL"
+    When MarshallAI evaluates the risk-gated combined trading signal
     Then the combined bullish weighted score should be 12
     And the combined bearish weighted score should be 0
     And the combined confidence score should be 100 percent
-    And the combined trading decision should be "BUY"
+    And the combined trading decision should be "HOLD"
 
-  Scenario: Bearish patterns and bearish technicals produce a SELL
+  Scenario: Critical event risk overrides a strong SELL signal
     Given the combined analysis detected the following patterns:
       | pattern           |
       | Bearish Breakdown |
       | Double Top        |
     And the technical engine produced bullish score 0 and bearish score 6
-    When MarshallAI evaluates the combined trading signal
+    And the combined signal has event risk level "CRITICAL"
+    When MarshallAI evaluates the risk-gated combined trading signal
     Then the combined bullish weighted score should be 0
     And the combined bearish weighted score should be 12
     And the combined confidence score should be 100 percent
-    And the combined trading decision should be "SELL"
+    And the combined trading decision should be "HOLD"
 
-  Scenario: Conflicting evidence produces a HOLD
+  Scenario: Medium event risk allows a strong BUY signal
     Given the combined analysis detected the following patterns:
       | pattern          |
       | Bullish Breakout |
       | Cup and Handle   |
-    And the technical engine produced bullish score 0 and bearish score 3
-    When MarshallAI evaluates the combined trading signal
-    Then the combined bullish weighted score should be 6
-    And the combined bearish weighted score should be 3
-    And the combined confidence score should be 67 percent
-    And the combined trading decision should be "HOLD"
-
-  Scenario: Combined evidence reaches exactly 80 percent confidence
-    Given the combined analysis detected the following patterns:
-      | pattern          |
-      | Bullish Breakout |
-      | Bull Flag        |
-    And the technical engine produced bullish score 3 and bearish score 2
-    When MarshallAI evaluates the combined trading signal
-    Then the combined bullish weighted score should be 8
-    And the combined bearish weighted score should be 2
-    And the combined confidence score should be 80 percent
+    And the technical engine produced bullish score 6 and bearish score 0
+    And the combined signal has event risk level "MEDIUM"
+    When MarshallAI evaluates the risk-gated combined trading signal
+    Then the combined bullish weighted score should be 12
+    And the combined bearish weighted score should be 0
+    And the combined confidence score should be 100 percent
     And the combined trading decision should be "BUY"

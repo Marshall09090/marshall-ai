@@ -1,6 +1,7 @@
 package com.marshallai;
 
 import com.marshallai.analysis.MarketAnalysisResult;
+import com.marshallai.risk.EventRisk;
 import com.marshallai.signal.MarketSignal;
 import com.marshallai.signal.SignalService;
 import com.marshallai.signal.TechnicalSignal;
@@ -23,6 +24,8 @@ public class CombinedSignalStepDefinitions {
     private List<String> detectedPatterns;
 
     private TechnicalSignal technicalSignal;
+
+    private EventRisk eventRisk;
 
     private MarketSignal combinedSignal;
 
@@ -72,19 +75,42 @@ public class CombinedSignalStepDefinitions {
                 );
     }
 
+    @Given("the combined signal has event risk level {string}")
+    public void theCombinedSignalHasEventRiskLevel(
+            String riskLevel) {
+
+        eventRisk =
+                new EventRisk(
+                        EventRisk.Level.valueOf(riskLevel),
+                        "TEST_EVENT",
+                        "Combined signal event risk test"
+                );
+    }
+
     @When("MarshallAI evaluates the combined trading signal")
     public void marshallAIEvaluatesTheCombinedTradingSignal() {
 
         MarketAnalysisResult marketAnalysisResult =
-                new MarketAnalysisResult(
-                        detectedPatterns,
-                        MarketAnalysisResult.Direction.NEUTRAL
-                );
+                buildMarketAnalysisResult();
 
         combinedSignal =
                 signalService.evaluate(
                         marketAnalysisResult,
                         technicalSignal
+                );
+    }
+
+    @When("MarshallAI evaluates the risk-gated combined trading signal")
+    public void marshallAIEvaluatesTheRiskGatedCombinedTradingSignal() {
+
+        MarketAnalysisResult marketAnalysisResult =
+                buildMarketAnalysisResult();
+
+        combinedSignal =
+                signalService.evaluate(
+                        marketAnalysisResult,
+                        technicalSignal,
+                        eventRisk
                 );
     }
 
@@ -149,6 +175,14 @@ public class CombinedSignalStepDefinitions {
                 expectedDecision,
                 combinedSignal.getDecision().name(),
                 "Unexpected combined trading decision"
+        );
+    }
+
+    private MarketAnalysisResult buildMarketAnalysisResult() {
+
+        return new MarketAnalysisResult(
+                detectedPatterns,
+                MarketAnalysisResult.Direction.NEUTRAL
         );
     }
 }
