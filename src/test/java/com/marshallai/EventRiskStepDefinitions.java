@@ -1,5 +1,6 @@
 package com.marshallai;
 
+import com.marshallai.events.MarketEvent;
 import com.marshallai.risk.EventRisk;
 import com.marshallai.risk.EventRiskService;
 import io.cucumber.java.en.Given;
@@ -7,7 +8,10 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class EventRiskStepDefinitions {
 
@@ -20,6 +24,13 @@ public class EventRiskStepDefinitions {
     private boolean highImpact;
 
     private EventRisk eventRisk;
+
+    private MarketEvent marketEvent;
+    private LocalDateTime evaluationTime;
+
+    // =========================================================
+    // EXISTING EVENT-RISK STEPS
+    // =========================================================
 
     @Given("a {string} event named {string}")
     public void anEventNamed(
@@ -62,18 +73,98 @@ public class EventRiskStepDefinitions {
                 );
     }
 
+    // =========================================================
+    // MARKET EVENT INTEGRATION STEPS
+    // =========================================================
+
+    @Given(
+            "an ingested {string} market event named {string} " +
+                    "with impact {string} occurs in {int} minutes"
+    )
+    public void anIngestedMarketEventOccursInMinutes(
+            String eventType,
+            String title,
+            String impact,
+            int minutesUntilEvent) {
+
+        evaluationTime =
+                LocalDateTime.of(
+                        2026,
+                        1,
+                        15,
+                        10,
+                        0
+                );
+
+        MarketEvent.Impact marketImpact =
+                MarketEvent.Impact.valueOf(
+                        impact
+                );
+
+        marketEvent =
+                new MarketEvent(
+                        eventType,
+                        marketImpact,
+                        title,
+                        evaluationTime.plusMinutes(
+                                minutesUntilEvent
+                        ),
+                        "",
+                        "BDD"
+                );
+    }
+
+    @When(
+            "MarshallAI automatically evaluates " +
+                    "the ingested market event"
+    )
+    public void marshallAIAutomaticallyEvaluatesTheIngestedMarketEvent() {
+
+        assertNotNull(
+                marketEvent,
+                "Market event should not be null"
+        );
+
+        assertNotNull(
+                evaluationTime,
+                "Evaluation time should not be null"
+        );
+
+        eventRisk =
+                eventRiskService.evaluate(
+                        marketEvent,
+                        evaluationTime
+                );
+    }
+
+    // =========================================================
+    // SHARED ASSERTIONS
+    // =========================================================
+
     @Then("the event risk level should be {string}")
     public void theEventRiskLevelShouldBe(
             String expectedLevel) {
 
+        assertNotNull(
+                eventRisk,
+                "Event risk should not be null"
+        );
+
         assertEquals(
-                EventRisk.Level.valueOf(expectedLevel),
+                EventRisk.Level.valueOf(
+                        expectedLevel
+                ),
                 eventRisk.getLevel()
         );
     }
 
     @Then("new trading should be blocked")
     public void newTradingShouldBeBlocked() {
+
+        assertNotNull(
+                eventRisk,
+                "Event risk should not be null"
+        );
 
         assertEquals(
                 true,
@@ -83,6 +174,11 @@ public class EventRiskStepDefinitions {
 
     @Then("new trading should be allowed")
     public void newTradingShouldBeAllowed() {
+
+        assertNotNull(
+                eventRisk,
+                "Event risk should not be null"
+        );
 
         assertEquals(
                 false,

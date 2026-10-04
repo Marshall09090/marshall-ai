@@ -39,3 +39,33 @@ Feature: MarshallAI event risk protection
     When MarshallAI evaluates the event risk
     Then the event risk level should be "LOW"
     And new trading should be allowed
+
+  Scenario: Ingested critical market event automatically blocks trading
+    Given an ingested "ECONOMIC" market event named "Federal Reserve Decision" with impact "CRITICAL" occurs in 10 minutes
+    When MarshallAI automatically evaluates the ingested market event
+    Then the event risk level should be "CRITICAL"
+    And new trading should be blocked
+
+  Scenario: Ingested high impact market event becomes high risk
+    Given an ingested "EARNINGS" market event named "Apple Earnings" with impact "HIGH" occurs in 45 minutes
+    When MarshallAI automatically evaluates the ingested market event
+    Then the event risk level should be "HIGH"
+    And new trading should be blocked
+
+  Scenario: Ingested high impact market event becomes medium risk
+    Given an ingested "ECONOMIC" market event named "Inflation Report" with impact "HIGH" occurs in 180 minutes
+    When MarshallAI automatically evaluates the ingested market event
+    Then the event risk level should be "MEDIUM"
+    And new trading should be allowed
+
+  Scenario: Distant high impact market event becomes low risk
+    Given an ingested "ECONOMIC" market event named "Employment Report" with impact "HIGH" occurs in 300 minutes
+    When MarshallAI automatically evaluates the ingested market event
+    Then the event risk level should be "LOW"
+    And new trading should be allowed
+
+  Scenario: Nearby low impact market event remains low risk
+    Given an ingested "NEWS" market event named "Minor Market Update" with impact "LOW" occurs in 10 minutes
+    When MarshallAI automatically evaluates the ingested market event
+    Then the event risk level should be "LOW"
+    And new trading should be allowed
