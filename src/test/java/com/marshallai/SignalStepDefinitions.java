@@ -103,4 +103,26 @@ public class SignalStepDefinitions {
                 "Unexpected bearish signal count"
         );
     }
+
+    @Then("the bullish weighted score should be {int}")
+    public void theBullishWeightedScoreShouldBe(
+            int expectedScore) {
+
+        assertEquals(
+                expectedScore,
+                marketSignal.getBullishWeightedScore(),
+                "Unexpected bullish weighted score"
+        );
+    }
+
+    @Then("the bearish weighted score should be {int}")
+    public void theBearishWeightedScoreShouldBe(
+            int expectedScore) {
+
+        assertEquals(
+                expectedScore,
+                marketSignal.getBearishWeightedScore(),
+                "Unexpected bearish weighted score"
+        );
+    }
 }

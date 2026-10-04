@@ -3,43 +3,49 @@ package com.marshallai.signal;
 import com.marshallai.analysis.MarketAnalysisResult;
 import org.springframework.stereotype.Service;
 
-import java.util.Set;
+import java.util.Map;
 
 @Service
 public class SignalService {
 
     private static final int MIN_TRADE_CONFIDENCE_PERCENT = 80;
 
-    private static final Set<String> BULLISH_PATTERNS =
-            Set.of(
-                    "Bullish Rectangle",
-                    "Ascending Channel",
-                    "Bullish Pennant",
-                    "Bull Flag",
-                    "Bullish Breakout",
-                    "Double Bottom",
-                    "Triple Bottom",
-                    "Inverse Head and Shoulders",
-                    "Ascending Triangle",
-                    "Falling Wedge",
-                    "Cup and Handle",
-                    "Rounding Bottom"
+    private static final Map<String, Integer> BULLISH_PATTERN_WEIGHTS =
+            Map.ofEntries(
+
+                    Map.entry("Bullish Breakout", 3),
+                    Map.entry("Double Bottom", 3),
+                    Map.entry("Triple Bottom", 3),
+                    Map.entry("Inverse Head and Shoulders", 3),
+                    Map.entry("Cup and Handle", 3),
+                    Map.entry("Rounding Bottom", 3),
+
+                    Map.entry("Bullish Rectangle", 2),
+                    Map.entry("Bullish Pennant", 2),
+                    Map.entry("Bull Flag", 2),
+                    Map.entry("Ascending Triangle", 2),
+                    Map.entry("Falling Wedge", 2),
+
+                    Map.entry("Ascending Channel", 1)
             );
 
-    private static final Set<String> BEARISH_PATTERNS =
-            Set.of(
-                    "Bearish Rectangle",
-                    "Descending Channel",
-                    "Bearish Pennant",
-                    "Bear Flag",
-                    "Bearish Breakdown",
-                    "Double Top",
-                    "Triple Top",
-                    "Head and Shoulders",
-                    "Descending Triangle",
-                    "Rising Wedge",
-                    "Inverse Cup and Handle",
-                    "Rounding Top"
+    private static final Map<String, Integer> BEARISH_PATTERN_WEIGHTS =
+            Map.ofEntries(
+
+                    Map.entry("Bearish Breakdown", 3),
+                    Map.entry("Double Top", 3),
+                    Map.entry("Triple Top", 3),
+                    Map.entry("Head and Shoulders", 3),
+                    Map.entry("Inverse Cup and Handle", 3),
+                    Map.entry("Rounding Top", 3),
+
+                    Map.entry("Bearish Rectangle", 2),
+                    Map.entry("Bearish Pennant", 2),
+                    Map.entry("Bear Flag", 2),
+                    Map.entry("Descending Triangle", 2),
+                    Map.entry("Rising Wedge", 2),
+
+                    Map.entry("Descending Channel", 1)
             );
 
     public MarketSignal evaluate(
@@ -54,42 +60,62 @@ public class SignalService {
         int bullishSignalCount = 0;
         int bearishSignalCount = 0;
 
+        int bullishWeightedScore = 0;
+        int bearishWeightedScore = 0;
+
         for (String pattern :
                 marketAnalysisResult.getDetectedPatterns()) {
 
-            if (BULLISH_PATTERNS.contains(pattern)) {
+            Integer bullishWeight =
+                    BULLISH_PATTERN_WEIGHTS.get(pattern);
+
+            if (bullishWeight != null) {
+
                 bullishSignalCount++;
+
+                bullishWeightedScore +=
+                        bullishWeight;
             }
 
-            if (BEARISH_PATTERNS.contains(pattern)) {
+            Integer bearishWeight =
+                    BEARISH_PATTERN_WEIGHTS.get(pattern);
+
+            if (bearishWeight != null) {
+
                 bearishSignalCount++;
+
+                bearishWeightedScore +=
+                        bearishWeight;
             }
         }
 
-        int totalDirectionalSignals =
-                bullishSignalCount + bearishSignalCount;
+        int totalWeightedScore =
+                bullishWeightedScore
+                        + bearishWeightedScore;
 
-        if (totalDirectionalSignals == 0) {
+        if (totalWeightedScore == 0) {
 
             return new MarketSignal(
                     MarketSignal.Decision.HOLD,
+                    0,
+                    0,
                     0,
                     0,
                     0
             );
         }
 
-        int dominantSignalCount =
+        int dominantWeightedScore =
                 Math.max(
-                        bullishSignalCount,
-                        bearishSignalCount
+                        bullishWeightedScore,
+                        bearishWeightedScore
                 );
 
         int confidencePercent =
                 (int) Math.round(
-                        dominantSignalCount
+                        dominantWeightedScore
                                 * 100.0
-                                / totalDirectionalSignals
+                                / totalWeightedScore
                 );
 
         MarketSignal.Decision decision =
@@ -97,12 +123,14 @@ public class SignalService {
 
         if (confidencePercent >= MIN_TRADE_CONFIDENCE_PERCENT) {
 
-            if (bullishSignalCount > bearishSignalCount) {
+            if (bullishWeightedScore
+                    > bearishWeightedScore) {
 
                 decision =
                         MarketSignal.Decision.BUY;
 
-            } else if (bearishSignalCount > bullishSignalCount) {
+            } else if (bearishWeightedScore
+                    > bullishWeightedScore) {
 
                 decision =
                         MarketSignal.Decision.SELL;
@@ -113,7 +141,9 @@ public class SignalService {
                 decision,
                 confidencePercent,
                 bullishSignalCount,
-                bearishSignalCount
+                bearishSignalCount,
+                bullishWeightedScore,
+                bearishWeightedScore
         );
     }
 }
