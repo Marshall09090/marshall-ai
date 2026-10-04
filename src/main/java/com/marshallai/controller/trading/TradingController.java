@@ -2,6 +2,7 @@ package com.marshallai.controller.trading;
 
 import com.marshallai.analysis.MarketAnalysisResult;
 import com.marshallai.analysis.MarketAnalysisService;
+import com.marshallai.market.SymbolMarketAnalysisService;
 import com.marshallai.risk.EventRisk;
 import com.marshallai.risk.EventRiskService;
 import com.marshallai.risk.PositionSizeResult;
@@ -28,6 +29,7 @@ public class TradingController {
 
     private final MarketAnalysisService marketAnalysisService;
     private final TechnicalSignalService technicalSignalService;
+    private final SymbolMarketAnalysisService symbolMarketAnalysisService;
     private final EventRiskService eventRiskService;
     private final SignalService signalService;
     private final PositionSizingService positionSizingService;
@@ -36,6 +38,7 @@ public class TradingController {
     public TradingController(
             MarketAnalysisService marketAnalysisService,
             TechnicalSignalService technicalSignalService,
+            SymbolMarketAnalysisService symbolMarketAnalysisService,
             EventRiskService eventRiskService,
             SignalService signalService,
             PositionSizingService positionSizingService,
@@ -43,6 +46,7 @@ public class TradingController {
 
         this.marketAnalysisService = marketAnalysisService;
         this.technicalSignalService = technicalSignalService;
+        this.symbolMarketAnalysisService = symbolMarketAnalysisService;
         this.eventRiskService = eventRiskService;
         this.signalService = signalService;
         this.positionSizingService = positionSizingService;
@@ -79,29 +83,26 @@ public class TradingController {
                 true
         );
 
+        response.put(
+                "symbolAnalysisEnabled",
+                true
+        );
+
         return ResponseEntity.ok(response);
     }
 
     // =========================================================
-    // COMPLETE TRADING ANALYSIS
+    // COMPLETE TRADING ANALYSIS - MANUAL MARKET DATA
     // =========================================================
 
     @PostMapping("/analyze")
     public ResponseEntity<TradingAnalysisResponse> analyzeTradingOpportunity(
             @RequestBody TradingAnalysisRequest request) {
 
-        // -----------------------------------------------------
-        // 1. CHART PATTERN ANALYSIS
-        // -----------------------------------------------------
-
         MarketAnalysisResult marketAnalysisResult =
                 marketAnalysisService.analyze(
                         request.closingPrices()
                 );
-
-        // -----------------------------------------------------
-        // 2. TECHNICAL INDICATOR ANALYSIS
-        // -----------------------------------------------------
 
         TechnicalSignal technicalSignal =
                 technicalSignalService.evaluate(
@@ -110,8 +111,54 @@ public class TradingController {
                         request.closingPrices()
                 );
 
+        TradingAnalysisResponse response =
+                completeTradingAnalysis(
+                        request,
+                        request.symbol(),
+                        marketAnalysisResult,
+                        technicalSignal
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    // =========================================================
+    // COMPLETE TRADING ANALYSIS - SYMBOL MARKET DATA
+    // =========================================================
+
+    @PostMapping("/analyze-symbol")
+    public ResponseEntity<TradingAnalysisResponse> analyzeSymbol(
+            @RequestBody TradingAnalysisRequest request) {
+
+        SymbolMarketAnalysisService.SymbolMarketAnalysisResult
+                symbolAnalysis =
+                symbolMarketAnalysisService.analyze(
+                        request.symbol()
+                );
+
+        TradingAnalysisResponse response =
+                completeTradingAnalysis(
+                        request,
+                        symbolAnalysis.symbol(),
+                        symbolAnalysis.marketAnalysis(),
+                        symbolAnalysis.technicalSignal()
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    // =========================================================
+    // SHARED TRADING PIPELINE
+    // =========================================================
+
+    private TradingAnalysisResponse completeTradingAnalysis(
+            TradingAnalysisRequest request,
+            String symbol,
+            MarketAnalysisResult marketAnalysisResult,
+            TechnicalSignal technicalSignal) {
+
         // -----------------------------------------------------
-        // 3. EVENT RISK ANALYSIS
+        // 1. EVENT RISK ANALYSIS
         // -----------------------------------------------------
 
         EventRisk eventRisk =
@@ -123,7 +170,7 @@ public class TradingController {
                 );
 
         // -----------------------------------------------------
-        // 4. COMBINED TRADING SIGNAL
+        // 2. COMBINED TRADING SIGNAL
         //
         // Chart patterns
         // + technical indicators
@@ -139,7 +186,7 @@ public class TradingController {
                 );
 
         // -----------------------------------------------------
-        // 5. POSITION SIZING
+        // 3. POSITION SIZING
         // -----------------------------------------------------
 
         PositionSizeResult positionSize =
@@ -151,7 +198,7 @@ public class TradingController {
                 );
 
         // -----------------------------------------------------
-        // 6. FINAL TRADE APPROVAL
+        // 4. FINAL TRADE APPROVAL
         // -----------------------------------------------------
 
         TradeApprovalResult tradeApproval =
@@ -162,67 +209,64 @@ public class TradingController {
                 );
 
         // -----------------------------------------------------
-        // 7. API RESPONSE
+        // 5. API RESPONSE
         // -----------------------------------------------------
 
-        TradingAnalysisResponse response =
-                new TradingAnalysisResponse(
+        return new TradingAnalysisResponse(
 
-                        request.symbol(),
+                symbol,
 
-                        marketAnalysisResult
-                                .getDetectedPatterns(),
+                marketAnalysisResult
+                        .getDetectedPatterns(),
 
-                        marketAnalysisResult
-                                .getDirection()
-                                .name(),
+                marketAnalysisResult
+                        .getDirection()
+                        .name(),
 
-                        technicalSignal
-                                .getBullishWeightedScore(),
+                technicalSignal
+                        .getBullishWeightedScore(),
 
-                        technicalSignal
-                                .getBearishWeightedScore(),
+                technicalSignal
+                        .getBearishWeightedScore(),
 
-                        technicalSignal
-                                .getConfidencePercent(),
+                technicalSignal
+                        .getConfidencePercent(),
 
-                        marketSignal
-                                .getDecision()
-                                .name(),
+                marketSignal
+                        .getDecision()
+                        .name(),
 
-                        marketSignal
-                                .getConfidencePercent(),
+                marketSignal
+                        .getConfidencePercent(),
 
-                        marketSignal
-                                .getBullishWeightedScore(),
+                marketSignal
+                        .getBullishWeightedScore(),
 
-                        marketSignal
-                                .getBearishWeightedScore(),
+                marketSignal
+                        .getBearishWeightedScore(),
 
-                        eventRisk
-                                .getLevel()
-                                .name(),
+                eventRisk
+                        .getLevel()
+                        .name(),
 
-                        eventRisk
-                                .isTradeBlocked(),
+                eventRisk
+                        .isTradeBlocked(),
 
-                        tradeApproval
-                                .getStatus()
-                                .name(),
+                tradeApproval
+                        .getStatus()
+                        .name(),
 
-                        tradeApproval
-                                .getReason(),
+                tradeApproval
+                        .getReason(),
 
-                        tradeApproval
-                                .getQuantity(),
+                tradeApproval
+                        .getQuantity(),
 
-                        tradeApproval
-                                .getPositionValue(),
+                tradeApproval
+                        .getPositionValue(),
 
-                        tradeApproval
-                                .getRiskAmount()
-                );
-
-        return ResponseEntity.ok(response);
+                tradeApproval
+                        .getRiskAmount()
+        );
     }
 }
