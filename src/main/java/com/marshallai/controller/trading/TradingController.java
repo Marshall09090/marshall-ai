@@ -27,6 +27,8 @@ import java.util.Map;
 @RequestMapping("/api/trading")
 public class TradingController {
 
+    private static final int MINIMUM_CONFIDENCE_PERCENT = 80;
+
     private final MarketAnalysisService marketAnalysisService;
     private final TechnicalSignalService technicalSignalService;
     private final SymbolMarketAnalysisService symbolMarketAnalysisService;
@@ -75,7 +77,7 @@ public class TradingController {
 
         response.put(
                 "minimumConfidencePercent",
-                80
+                MINIMUM_CONFIDENCE_PERCENT
         );
 
         response.put(
@@ -92,12 +94,17 @@ public class TradingController {
     }
 
     // =========================================================
-    // COMPLETE TRADING ANALYSIS - MANUAL MARKET DATA
+    // MANUAL MARKET-DATA ANALYSIS
+    //
+    // This endpoint uses the OHLC price arrays supplied directly
+    // in TradingAnalysisRequest.
     // =========================================================
 
     @PostMapping("/analyze")
     public ResponseEntity<TradingAnalysisResponse> analyzeTradingOpportunity(
             @RequestBody TradingAnalysisRequest request) {
+
+        validateRequest(request);
 
         MarketAnalysisResult marketAnalysisResult =
                 marketAnalysisService.analyze(
@@ -114,7 +121,7 @@ public class TradingController {
         TradingAnalysisResponse response =
                 completeTradingAnalysis(
                         request,
-                        request.symbol(),
+                        normalizeSymbol(request.symbol()),
                         marketAnalysisResult,
                         technicalSignal
                 );
@@ -123,12 +130,31 @@ public class TradingController {
     }
 
     // =========================================================
-    // COMPLETE TRADING ANALYSIS - SYMBOL MARKET DATA
+    // SYMBOL-DRIVEN MARKET ANALYSIS
+    //
+    // IMPORTANT:
+    //
+    // This endpoint intentionally does NOT use highPrices,
+    // lowPrices or closingPrices from TradingAnalysisRequest.
+    //
+    // Historical candles are obtained through:
+    //
+    // symbol
+    //   -> SymbolMarketAnalysisService
+    //   -> MarketDataProvider
+    //   -> historical candles
+    //   -> chart analysis
+    //   -> technical analysis
+    //
+    // This keeps the symbol-driven API independent from manually
+    // supplied market-price arrays.
     // =========================================================
 
     @PostMapping("/analyze-symbol")
     public ResponseEntity<TradingAnalysisResponse> analyzeSymbol(
             @RequestBody TradingAnalysisRequest request) {
+
+        validateSymbolRequest(request);
 
         SymbolMarketAnalysisService.SymbolMarketAnalysisResult
                 symbolAnalysis =
@@ -158,7 +184,7 @@ public class TradingController {
             TechnicalSignal technicalSignal) {
 
         // -----------------------------------------------------
-        // 1. EVENT RISK ANALYSIS
+        // 1. EVENT RISK
         // -----------------------------------------------------
 
         EventRisk eventRisk =
@@ -170,12 +196,12 @@ public class TradingController {
                 );
 
         // -----------------------------------------------------
-        // 2. COMBINED TRADING SIGNAL
+        // 2. COMBINED SIGNAL
         //
-        // Chart patterns
-        // + technical indicators
+        // Pattern evidence
+        // + technical evidence
+        // + 80% confidence threshold
         // + event-risk gate
-        // + 80% confidence requirement
         // -----------------------------------------------------
 
         MarketSignal marketSignal =
@@ -209,7 +235,7 @@ public class TradingController {
                 );
 
         // -----------------------------------------------------
-        // 5. API RESPONSE
+        // 5. RESPONSE
         // -----------------------------------------------------
 
         return new TradingAnalysisResponse(
@@ -268,5 +294,93 @@ public class TradingController {
                 tradeApproval
                         .getRiskAmount()
         );
+    }
+
+    // =========================================================
+    // REQUEST VALIDATION
+    // =========================================================
+
+    private void validateRequest(
+            TradingAnalysisRequest request) {
+
+        if (request == null) {
+            throw new IllegalArgumentException(
+                    "Trading analysis request cannot be null"
+            );
+        }
+
+        validateSymbol(request.symbol());
+
+        if (request.highPrices() == null
+                || request.lowPrices() == null
+                || request.closingPrices() == null) {
+
+            throw new IllegalArgumentException(
+                    "Manual trading analysis requires market price data"
+            );
+        }
+
+        if (request.highPrices().isEmpty()
+                || request.lowPrices().isEmpty()
+                || request.closingPrices().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Market price data cannot be empty"
+            );
+        }
+
+        if (request.highPrices().size()
+                != request.lowPrices().size()
+                || request.highPrices().size()
+                != request.closingPrices().size()) {
+
+            throw new IllegalArgumentException(
+                    "High, low and closing price lists must have equal sizes"
+            );
+        }
+    }
+
+    // =========================================================
+    // SYMBOL REQUEST VALIDATION
+    // =========================================================
+
+    private void validateSymbolRequest(
+            TradingAnalysisRequest request) {
+
+        if (request == null) {
+            throw new IllegalArgumentException(
+                    "Trading analysis request cannot be null"
+            );
+        }
+
+        validateSymbol(request.symbol());
+    }
+
+    // =========================================================
+    // SYMBOL VALIDATION
+    // =========================================================
+
+    private void validateSymbol(
+            String symbol) {
+
+        if (symbol == null
+                || symbol.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Trading symbol cannot be blank"
+            );
+        }
+    }
+
+    // =========================================================
+    // SYMBOL NORMALIZATION
+    // =========================================================
+
+    private String normalizeSymbol(
+            String symbol) {
+
+        return symbol
+                .trim()
+                .toUpperCase();
     }
 }

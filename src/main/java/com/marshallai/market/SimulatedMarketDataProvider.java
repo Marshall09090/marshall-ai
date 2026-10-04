@@ -9,53 +9,228 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class SimulatedMarketDataProvider implements MarketDataProvider {
+public class SimulatedMarketDataProvider
+        implements MarketDataProvider {
+
+    public enum MarketMode {
+        STRONGLY_BULLISH,
+        MIXED
+    }
+
+    private MarketMode marketMode =
+            MarketMode.STRONGLY_BULLISH;
+
+    public void useStronglyBullishMarket() {
+        marketMode =
+                MarketMode.STRONGLY_BULLISH;
+    }
+
+    public void useMixedMarket() {
+        marketMode =
+                MarketMode.MIXED;
+    }
 
     @Override
     public List<MarketCandle> getHistoricalCandles(
             String symbol,
             int candleCount) {
 
-        validateRequest(symbol, candleCount);
+        validateRequest(
+                symbol,
+                candleCount
+        );
 
-        List<MarketCandle> candles = new ArrayList<>();
+        if (marketMode == MarketMode.MIXED) {
 
-        BigDecimal startingPrice =
-                BigDecimal.valueOf(100.00);
+            return buildMixedMarket(
+                    symbol,
+                    candleCount
+            );
+        }
+
+        return buildStronglyBullishMarket(
+                symbol,
+                candleCount
+        );
+    }
+
+    private List<MarketCandle> buildStronglyBullishMarket(
+            String symbol,
+            int candleCount) {
+
+        List<BigDecimal> closingPrices =
+                new ArrayList<>();
+
+        for (int i = 0;
+             i < candleCount;
+             i++) {
+
+            closingPrices.add(
+                    BigDecimal.valueOf(
+                            100L + i
+                    )
+            );
+        }
+
+        return buildCandles(
+                symbol,
+                closingPrices
+        );
+    }
+
+    private List<MarketCandle> buildMixedMarket(
+            String symbol,
+            int candleCount) {
+
+        List<BigDecimal> closingPrices =
+                new ArrayList<>();
+
+        /*
+         * This sequence intentionally creates
+         * conflicting technical evidence.
+         *
+         * For a 30-candle request:
+         *
+         * 100 ... 125
+         * then
+         * 122, 119, 116, 113
+         *
+         * Expected technical evidence:
+         *
+         * bullish = 2
+         * bearish = 3
+         * confidence = 60%
+         *
+         * This should remain below the
+         * 80% trading threshold.
+         */
+
+        if (candleCount >= 30) {
+
+            int normalTrendCount =
+                    candleCount - 4;
+
+            for (int i = 0;
+                 i < normalTrendCount;
+                 i++) {
+
+                closingPrices.add(
+                        BigDecimal.valueOf(
+                                100L + i
+                        )
+                );
+            }
+
+            BigDecimal peak =
+                    closingPrices.get(
+                            closingPrices.size() - 1
+                    );
+
+            closingPrices.add(
+                    peak.subtract(
+                            BigDecimal.valueOf(3)
+                    )
+            );
+
+            closingPrices.add(
+                    peak.subtract(
+                            BigDecimal.valueOf(6)
+                    )
+            );
+
+            closingPrices.add(
+                    peak.subtract(
+                            BigDecimal.valueOf(9)
+                    )
+            );
+
+            closingPrices.add(
+                    peak.subtract(
+                            BigDecimal.valueOf(12)
+                    )
+            );
+
+        } else {
+
+            for (int i = 0;
+                 i < candleCount;
+                 i++) {
+
+                long movement =
+                        i % 2 == 0
+                                ? i
+                                : -i;
+
+                closingPrices.add(
+                        BigDecimal.valueOf(
+                                100L + movement
+                        )
+                );
+            }
+        }
+
+        return buildCandles(
+                symbol,
+                closingPrices
+        );
+    }
+
+    private List<MarketCandle> buildCandles(
+            String symbol,
+            List<BigDecimal> closingPrices) {
+
+        List<MarketCandle> candles =
+                new ArrayList<>();
 
         Instant startingTimestamp =
                 Instant.now()
-                        .minus(candleCount, ChronoUnit.MINUTES);
+                        .minus(
+                                closingPrices.size(),
+                                ChronoUnit.MINUTES
+                        );
 
-        for (int i = 0; i < candleCount; i++) {
-
-            BigDecimal priceIncrease =
-                    BigDecimal.valueOf(i)
-                            .multiply(
-                                    BigDecimal.valueOf(0.50)
-                            );
-
-            BigDecimal open =
-                    startingPrice.add(priceIncrease);
+        for (int i = 0;
+             i < closingPrices.size();
+             i++) {
 
             BigDecimal close =
-                    open.add(
-                            BigDecimal.valueOf(0.25)
-                    );
+                    closingPrices.get(i);
+
+            BigDecimal open;
+
+            if (i == 0) {
+
+                open =
+                        close.subtract(
+                                BigDecimal.valueOf(
+                                        0.25
+                                )
+                        );
+
+            } else {
+
+                open =
+                        closingPrices.get(
+                                i - 1
+                        );
+            }
 
             BigDecimal high =
-                    close.add(
-                            BigDecimal.valueOf(0.50)
-                    );
+                    open.max(close)
+                            .add(
+                                    BigDecimal.ONE
+                            );
 
             BigDecimal low =
-                    open.subtract(
-                            BigDecimal.valueOf(0.50)
-                    );
+                    open.min(close)
+                            .subtract(
+                                    BigDecimal.ONE
+                            );
 
             BigDecimal volume =
                     BigDecimal.valueOf(
-                            1000L + (i * 10L)
+                            1000L
+                                    + (i * 10L)
                     );
 
             Instant timestamp =
@@ -64,9 +239,11 @@ public class SimulatedMarketDataProvider implements MarketDataProvider {
                             ChronoUnit.MINUTES
                     );
 
-            MarketCandle candle =
+            candles.add(
                     new MarketCandle(
-                            symbol.toUpperCase(),
+                            symbol
+                                    .trim()
+                                    .toUpperCase(),
                             AssetType.STOCK,
                             "1m",
                             open,
@@ -75,9 +252,8 @@ public class SimulatedMarketDataProvider implements MarketDataProvider {
                             close,
                             volume,
                             timestamp
-                    );
-
-            candles.add(candle);
+                    )
+            );
         }
 
         return candles;
