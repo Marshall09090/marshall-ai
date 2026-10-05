@@ -145,3 +145,42 @@ Feature: Trade definition and execution contract
     Then no executable trade should be created
     And a shadow-only signal outcome should be recorded
     And its outcome should be measured using standalone trade R
+
+  Scenario: Initial stop can trigger on the entry bar
+    Given a trade is filled on an entry bar at 100.00
+    And the initial stop price is 90.00
+    And the entry bar low is 89.00
+    When the entry bar stop is evaluated
+    Then the stop should trigger at 90.00
+    And the modeled exit fill should be 89.91
+    And the exit reason should be "STOP"
+    And the entry bar should be holding bar 1
+
+  Scenario Outline: Entry-bar stop uses an inclusive boundary
+    Given a trade is filled on an entry bar at 100.00
+    And the initial stop price is 90.00
+    When an entry bar low of <low> is evaluated
+    Then the entry-bar stop triggered state should be <triggered>
+
+    Examples:
+      | low   | triggered |
+      | 90.00 | true      |
+      | 90.01 | false     |
+
+  Scenario: Entry-bar high cannot raise the trailing stop on the same bar
+    Given a trade is filled on an entry bar at 100.00
+    And the initial stop price is 90.00
+    And the entry bar high is 110.00
+    And the entry bar low is 89.00
+    When the entry bar stop is evaluated
+    Then the active stop for that bar should remain 90.00
+    And the stop should trigger at 90.00
+    And the modeled exit fill should be 89.91
+
+  Scenario: Entry-bar survival carries the position into bar 2
+    Given a trade is filled on an entry bar at 100.00
+    And the initial stop price is 90.00
+    And the entry bar low is 90.01
+    When the entry bar stop is evaluated
+    Then the position should remain open
+    And the next holding bar should be bar 2

@@ -13,7 +13,9 @@ public class TradeStopService {
         this.tradeDefinition = TradeDefinition.v1();
     }
 
-    public TradeStopService(TradeDefinition tradeDefinition) {
+    public TradeStopService(
+            TradeDefinition tradeDefinition) {
+
         if (tradeDefinition == null) {
             throw new IllegalArgumentException(
                     "Trade definition cannot be null"
@@ -27,13 +29,28 @@ public class TradeStopService {
             BigDecimal fillPrice,
             BigDecimal frozenStopDistance) {
 
-        requirePositive(fillPrice, "Fill price");
+        requirePositive(
+                fillPrice,
+                "Fill price"
+        );
+
         requirePositive(
                 frozenStopDistance,
                 "Frozen stop distance"
         );
 
-        return fillPrice.subtract(frozenStopDistance);
+        BigDecimal initialStop =
+                fillPrice.subtract(
+                        frozenStopDistance
+                );
+
+        if (initialStop.signum() <= 0) {
+            throw new IllegalArgumentException(
+                    "Initial stop must remain greater than zero"
+            );
+        }
+
+        return initialStop;
     }
 
     public BigDecimal calculateCandidateTrailingStop(
@@ -52,7 +69,8 @@ public class TradeStopService {
 
         return highestHighSinceEntry.subtract(
                 completedBarAtr.multiply(
-                        tradeDefinition.trailingStopAtrMultiplier()
+                        tradeDefinition
+                                .trailingStopAtrMultiplier()
                 )
         );
     }
@@ -62,11 +80,16 @@ public class TradeStopService {
             BigDecimal previousActiveStop,
             BigDecimal candidateTrailingStop) {
 
-        requireValue(initialStop, "Initial stop");
+        requireValue(
+                initialStop,
+                "Initial stop"
+        );
+
         requireValue(
                 previousActiveStop,
                 "Previous active stop"
         );
+
         requireValue(
                 candidateTrailingStop,
                 "Candidate trailing stop"
@@ -77,18 +100,46 @@ public class TradeStopService {
                 .max(candidateTrailingStop);
     }
 
+    /**
+     * Evaluates the active stop for a completed trading bar.
+     *
+     * If the market opens through the stop, the execution
+     * reference is the opening price.
+     *
+     * Otherwise, if the bar low touches or crosses the stop,
+     * the execution reference is the active stop.
+     *
+     * Portfolio-level execution-cost modeling may subsequently
+     * apply adverse stop slippage to this reference price.
+     */
     public StopEvaluation evaluateStop(
             BigDecimal activeStop,
             BigDecimal barOpen,
             BigDecimal barLow) {
 
-        requireValue(activeStop, "Active stop");
-        requirePositive(barOpen, "Bar open");
-        requirePositive(barLow, "Bar low");
+        requirePositive(
+                activeStop,
+                "Active stop"
+        );
+
+        requirePositive(
+                barOpen,
+                "Bar open"
+        );
+
+        requirePositive(
+                barLow,
+                "Bar low"
+        );
+
+        if (barLow.compareTo(barOpen) > 0) {
+            throw new IllegalArgumentException(
+                    "Bar low cannot exceed bar open"
+            );
+        }
 
         /*
-         * If the market gaps through the stop, the fill occurs
-         * at the opening price. Loss may therefore exceed 1R.
+         * Gap through the active stop.
          */
         if (barOpen.compareTo(activeStop) <= 0) {
             return new StopEvaluation(
@@ -99,7 +150,10 @@ public class TradeStopService {
         }
 
         /*
-         * Otherwise an intraday touch fills at the active stop.
+         * Intraday touch or penetration.
+         *
+         * The comparison is intentionally inclusive:
+         * low == stop triggers the stop.
          */
         if (barLow.compareTo(activeStop) <= 0) {
             return new StopEvaluation(
@@ -112,6 +166,114 @@ public class TradeStopService {
         return StopEvaluation.notTriggered();
     }
 
+    /**
+     * Entry-bar stop evaluation for a newly filled long trade.
+     *
+     * Frozen v1 rules:
+     *
+     * 1. The entry bar is holding bar 1.
+     * 2. The initial stop is active immediately after the fill.
+     * 3. low <= initial stop triggers the stop.
+     * 4. The entry bar cannot raise its own trailing stop.
+     * 5. If the trade survives, the next holding bar is bar 2.
+     *
+     * This method returns the stop trigger/reference price.
+     * Adverse stop slippage is applied separately by portfolio
+     * execution-cost modeling.
+     */
+    public EntryBarStopEvaluation evaluateEntryBarStop(
+            BigDecimal fillPrice,
+            BigDecimal initialStop,
+            BigDecimal entryBarLow) {
+
+        requirePositive(
+                fillPrice,
+                "Fill price"
+        );
+
+        requirePositive(
+                initialStop,
+                "Initial stop"
+        );
+
+        requirePositive(
+                entryBarLow,
+                "Entry bar low"
+        );
+
+        if (initialStop.compareTo(fillPrice) >= 0) {
+            throw new IllegalArgumentException(
+                    "Initial stop for a long trade must be below the fill price"
+            );
+        }
+
+        boolean triggered =
+                entryBarLow.compareTo(
+                        initialStop
+                ) <= 0;
+
+        if (triggered) {
+            return EntryBarStopEvaluation.triggered(
+                    initialStop
+            );
+        }
+
+        return EntryBarStopEvaluation.survived(
+                initialStop
+        );
+    }
+
+    /**
+     * Entry-bar overload that accepts the bar high explicitly.
+     *
+     * The high is validated but deliberately does not alter
+     * the active stop during the same bar.
+     *
+     * A trailing stop derived from this bar can only become
+     * active on the following bar.
+     */
+    public EntryBarStopEvaluation evaluateEntryBarStop(
+            BigDecimal fillPrice,
+            BigDecimal initialStop,
+            BigDecimal entryBarHigh,
+            BigDecimal entryBarLow) {
+
+        requirePositive(
+                entryBarHigh,
+                "Entry bar high"
+        );
+
+        requirePositive(
+                entryBarLow,
+                "Entry bar low"
+        );
+
+        if (entryBarHigh.compareTo(entryBarLow) < 0) {
+            throw new IllegalArgumentException(
+                    "Entry bar high cannot be below entry bar low"
+            );
+        }
+
+        if (entryBarHigh.compareTo(fillPrice) < 0) {
+            throw new IllegalArgumentException(
+                    "Entry bar high cannot be below the opening fill price"
+            );
+        }
+
+        /*
+         * Intentionally ignore entryBarHigh when choosing the
+         * active stop for bar 1.
+         *
+         * This prevents the bar's own high from raising the
+         * trailing stop before the bar's low is evaluated.
+         */
+        return evaluateEntryBarStop(
+                fillPrice,
+                initialStop,
+                entryBarLow
+        );
+    }
+
     public TradeDefinition getTradeDefinition() {
         return tradeDefinition;
     }
@@ -120,9 +282,11 @@ public class TradeStopService {
             BigDecimal value,
             String fieldName) {
 
-        if (value == null || value.signum() <= 0) {
+        if (value == null ||
+                value.signum() <= 0) {
             throw new IllegalArgumentException(
-                    fieldName + " must be greater than zero"
+                    fieldName +
+                            " must be greater than zero"
             );
         }
     }
@@ -133,7 +297,8 @@ public class TradeStopService {
 
         if (value == null) {
             throw new IllegalArgumentException(
-                    fieldName + " cannot be null"
+                    fieldName +
+                            " cannot be null"
             );
         }
     }
@@ -146,15 +311,21 @@ public class TradeStopService {
 
         public StopEvaluation {
             if (triggered) {
-                if (exitPrice == null) {
-                    throw new IllegalArgumentException(
-                            "Triggered stop requires an exit price"
-                    );
-                }
+                requirePositive(
+                        exitPrice,
+                        "Triggered stop exit price"
+                );
 
                 if (exitReason != ExitReason.STOP) {
                     throw new IllegalArgumentException(
                             "Triggered stop must use STOP exit reason"
+                    );
+                }
+            } else {
+                if (exitPrice != null ||
+                        exitReason != null) {
+                    throw new IllegalArgumentException(
+                            "Non-triggered stop cannot have an exit price or exit reason"
                     );
                 }
             }
@@ -165,6 +336,92 @@ public class TradeStopService {
                     false,
                     null,
                     null
+            );
+        }
+    }
+
+    public record EntryBarStopEvaluation(
+            boolean triggered,
+            BigDecimal activeStop,
+            BigDecimal triggerPrice,
+            ExitReason exitReason,
+            int holdingBar,
+            Integer nextHoldingBar
+    ) {
+
+        public EntryBarStopEvaluation {
+
+            requirePositive(
+                    activeStop,
+                    "Entry-bar active stop"
+            );
+
+            if (holdingBar != 1) {
+                throw new IllegalArgumentException(
+                        "Entry bar must be holding bar 1"
+                );
+            }
+
+            if (triggered) {
+
+                requirePositive(
+                        triggerPrice,
+                        "Entry-bar stop trigger price"
+                );
+
+                if (exitReason != ExitReason.STOP) {
+                    throw new IllegalArgumentException(
+                            "Triggered entry-bar stop must use STOP exit reason"
+                    );
+                }
+
+                if (nextHoldingBar != null) {
+                    throw new IllegalArgumentException(
+                            "Stopped entry-bar trade cannot advance to another holding bar"
+                    );
+                }
+
+            } else {
+
+                if (triggerPrice != null ||
+                        exitReason != null) {
+                    throw new IllegalArgumentException(
+                            "Surviving entry bar cannot have a stop trigger price or exit reason"
+                    );
+                }
+
+                if (nextHoldingBar == null ||
+                        nextHoldingBar != 2) {
+                    throw new IllegalArgumentException(
+                            "A trade surviving the entry bar must advance to holding bar 2"
+                    );
+                }
+            }
+        }
+
+        public static EntryBarStopEvaluation triggered(
+                BigDecimal initialStop) {
+
+            return new EntryBarStopEvaluation(
+                    true,
+                    initialStop,
+                    initialStop,
+                    ExitReason.STOP,
+                    1,
+                    null
+            );
+        }
+
+        public static EntryBarStopEvaluation survived(
+                BigDecimal initialStop) {
+
+            return new EntryBarStopEvaluation(
+                    false,
+                    initialStop,
+                    null,
+                    null,
+                    1,
+                    2
             );
         }
     }
