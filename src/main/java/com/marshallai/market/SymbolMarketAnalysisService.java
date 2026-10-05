@@ -12,7 +12,16 @@ import java.util.List;
 @Service
 public class SymbolMarketAnalysisService {
 
-    private static final int DEFAULT_CANDLE_COUNT = 30;
+    /*
+     * MarshallAI requires enough completed historical candles
+     * for technical-analysis warm-up before producing a signal.
+     */
+    private static final int MINIMUM_CANDLE_COUNT = 200;
+
+    /*
+     * Symbol analysis uses the same safe minimum by default.
+     */
+    private static final int DEFAULT_CANDLE_COUNT = MINIMUM_CANDLE_COUNT;
 
     private final MarketDataProvider marketDataProvider;
     private final MarketAnalysisService marketAnalysisService;
@@ -30,14 +39,20 @@ public class SymbolMarketAnalysisService {
 
     public SymbolMarketAnalysisResult analyze(String symbol) {
 
-        return analyze(symbol, DEFAULT_CANDLE_COUNT);
+        return analyze(
+                symbol,
+                DEFAULT_CANDLE_COUNT
+        );
     }
 
     public SymbolMarketAnalysisResult analyze(
             String symbol,
             int candleCount) {
 
-        validateRequest(symbol, candleCount);
+        validateRequest(
+                symbol,
+                candleCount
+        );
 
         List<MarketCandle> candles =
                 marketDataProvider.getHistoricalCandles(
@@ -45,12 +60,10 @@ public class SymbolMarketAnalysisService {
                         candleCount
                 );
 
-        if (candles == null || candles.isEmpty()) {
-            throw new IllegalStateException(
-                    "No market candles were returned for symbol: "
-                            + symbol
-            );
-        }
+        validateReturnedCandles(
+                symbol,
+                candles
+        );
 
         List<BigDecimal> highPrices =
                 candles.stream()
@@ -100,6 +113,38 @@ public class SymbolMarketAnalysisService {
         if (candleCount <= 0) {
             throw new IllegalArgumentException(
                     "Candle count must be greater than zero"
+            );
+        }
+
+        if (candleCount < MINIMUM_CANDLE_COUNT) {
+            throw new IllegalArgumentException(
+                    "Insufficient historical market data requested. "
+                            + "At least "
+                            + MINIMUM_CANDLE_COUNT
+                            + " candles are required"
+            );
+        }
+    }
+
+    private void validateReturnedCandles(
+            String symbol,
+            List<MarketCandle> candles) {
+
+        if (candles == null || candles.isEmpty()) {
+            throw new IllegalStateException(
+                    "No market candles were returned for symbol: "
+                            + symbol
+            );
+        }
+
+        if (candles.size() < MINIMUM_CANDLE_COUNT) {
+            throw new IllegalStateException(
+                    "Insufficient historical market data returned for symbol "
+                            + symbol.trim().toUpperCase()
+                            + ". Required at least "
+                            + MINIMUM_CANDLE_COUNT
+                            + " candles but received "
+                            + candles.size()
             );
         }
     }

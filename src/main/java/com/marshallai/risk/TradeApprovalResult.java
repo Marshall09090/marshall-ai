@@ -113,9 +113,20 @@ public class TradeApprovalResult {
         return status == Status.BLOCKED;
     }
 
+    // =========================================================
+    // EXECUTABLE POSITION
+    //
+    // A blocked trade must never expose an executable position.
+    // Position sizing may have been calculated earlier in the
+    // analysis pipeline, but it is not executable unless final
+    // trade approval has been granted.
+    // =========================================================
+
     public int getQuantity() {
 
-        if (positionSize == null) {
+        if (!isApproved()
+                || positionSize == null) {
+
             return 0;
         }
 
@@ -124,7 +135,9 @@ public class TradeApprovalResult {
 
     public BigDecimal getPositionValue() {
 
-        if (positionSize == null) {
+        if (!isApproved()
+                || positionSize == null) {
+
             return BigDecimal.ZERO;
         }
 
@@ -133,7 +146,9 @@ public class TradeApprovalResult {
 
     public BigDecimal getRiskAmount() {
 
-        if (positionSize == null) {
+        if (!isApproved()
+                || positionSize == null) {
+
             return BigDecimal.ZERO;
         }
 

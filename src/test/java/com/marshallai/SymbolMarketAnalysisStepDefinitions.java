@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SymbolMarketAnalysisStepDefinitions {
 
@@ -162,7 +163,7 @@ public class SymbolMarketAnalysisStepDefinitions {
                         () ->
                                 symbolMarketAnalysisService.analyze(
                                         "",
-                                        30
+                                        200
                                 )
                 );
     }
@@ -189,6 +190,23 @@ public class SymbolMarketAnalysisStepDefinitions {
         assertNotNull(
                 capturedException,
                 "Expected symbol analysis to be rejected"
+        );
+    }
+
+    @Then("the symbol analysis should be rejected as insufficient data")
+    public void theSymbolAnalysisShouldBeRejectedAsInsufficientData() {
+
+        assertNotNull(
+                capturedException,
+                "Expected insufficient historical market data to be rejected"
+        );
+
+        assertTrue(
+                capturedException.getMessage() != null
+                        && capturedException.getMessage()
+                        .toLowerCase()
+                        .contains("insufficient"),
+                "Expected rejection reason to indicate insufficient market data"
         );
     }
 }

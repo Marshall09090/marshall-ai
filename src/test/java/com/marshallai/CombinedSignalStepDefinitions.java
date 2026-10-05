@@ -86,6 +86,11 @@ public class CombinedSignalStepDefinitions {
                         "Combined signal event risk test"
                 );
     }
+    @Given("the combined analysis detected no patterns")
+    public void theCombinedAnalysisDetectedNoPatterns() {
+
+        detectedPatterns = List.of();
+    }
 
     @When("MarshallAI evaluates the combined trading signal")
     public void marshallAIEvaluatesTheCombinedTradingSignal() {

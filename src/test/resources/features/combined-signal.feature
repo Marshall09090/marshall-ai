@@ -42,3 +42,14 @@ Feature: Combined trading signal with event-risk protection
     And the combined bearish weighted score should be 0
     And the combined confidence score should be 100 percent
     And the combined trading decision should be "BUY"
+
+  Scenario: Zero combined evidence produces zero confidence and HOLD
+    Given the combined analysis detected no patterns
+    And the technical engine produced bullish score 0 and bearish score 0
+    And the combined signal has event risk level "LOW"
+    When MarshallAI evaluates the risk-gated combined trading signal
+    Then the combined bullish weighted score should be 0
+    And the combined bearish weighted score should be 0
+    And the combined confidence score should be 0 percent
+    And the combined trading decision should be "HOLD"
+

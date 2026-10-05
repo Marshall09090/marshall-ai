@@ -145,7 +145,26 @@ public class IndicatorService {
                             );
         }
 
+        /*
+         * RSI edge cases:
+         *
+         * No gains and no losses means the market is completely flat.
+         * A flat market is neutral, so RSI must be 50 rather than 100.
+         *
+         * Gains with no losses represents maximum bullish RSI.
+         */
+        if (averageGain.compareTo(BigDecimal.ZERO) == 0
+                && averageLoss.compareTo(BigDecimal.ZERO) == 0) {
+
+            return BigDecimal.valueOf(50)
+                    .setScale(
+                            SCALE,
+                            RoundingMode.HALF_UP
+                    );
+        }
+
         if (averageLoss.compareTo(BigDecimal.ZERO) == 0) {
+
             return BigDecimal.valueOf(100)
                     .setScale(
                             SCALE,

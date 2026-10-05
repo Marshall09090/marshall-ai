@@ -11,6 +11,15 @@ public class PositionSizingService {
     private static final BigDecimal ONE_HUNDRED =
             new BigDecimal("100");
 
+    /*
+     * Maximum percentage of the account that may be committed
+     * to a single position.
+     *
+     * This is independent from the stop-loss risk percentage.
+     */
+    private static final BigDecimal MAXIMUM_POSITION_EXPOSURE_PERCENT =
+            new BigDecimal("5");
+
     public PositionSizeResult calculate(
             BigDecimal accountBalance,
             BigDecimal riskPercent,
@@ -24,6 +33,10 @@ public class PositionSizingService {
                 stopLossPrice
         );
 
+        // =====================================================
+        // 1. MAXIMUM DOLLAR RISK
+        // =====================================================
+
         BigDecimal riskAmount =
                 accountBalance
                         .multiply(riskPercent)
@@ -32,6 +45,10 @@ public class PositionSizingService {
                                 2,
                                 RoundingMode.DOWN
                         );
+
+        // =====================================================
+        // 2. RISK PER UNIT
+        // =====================================================
 
         BigDecimal riskPerUnit =
                 entryPrice
@@ -44,6 +61,13 @@ public class PositionSizingService {
             );
         }
 
+        // =====================================================
+        // 3. RISK-BASED QUANTITY
+        //
+        // Example:
+        // $1,000 risk / $10 risk per share = 100 shares
+        // =====================================================
+
         int riskBasedQuantity =
                 riskAmount
                         .divide(
@@ -53,8 +77,36 @@ public class PositionSizingService {
                         )
                         .intValue();
 
-        int capitalBasedQuantity =
+        // =====================================================
+        // 4. MAXIMUM ACCOUNT EXPOSURE
+        //
+        // A single position may use no more than 5% of the
+        // account balance.
+        //
+        // Example:
+        // $100,000 account * 5% = $5,000 maximum exposure
+        // =====================================================
+
+        BigDecimal maximumPositionExposure =
                 accountBalance
+                        .multiply(
+                                MAXIMUM_POSITION_EXPOSURE_PERCENT
+                        )
+                        .divide(
+                                ONE_HUNDRED,
+                                2,
+                                RoundingMode.DOWN
+                        );
+
+        // =====================================================
+        // 5. EXPOSURE-BASED QUANTITY
+        //
+        // Example:
+        // $5,000 / $450 = 11 whole shares
+        // =====================================================
+
+        int exposureBasedQuantity =
+                maximumPositionExposure
                         .divide(
                                 entryPrice,
                                 0,
@@ -62,11 +114,21 @@ public class PositionSizingService {
                         )
                         .intValue();
 
+        // =====================================================
+        // 6. FINAL QUANTITY
+        //
+        // The safer/smaller quantity wins.
+        // =====================================================
+
         int quantity =
                 Math.min(
                         riskBasedQuantity,
-                        capitalBasedQuantity
+                        exposureBasedQuantity
                 );
+
+        // =====================================================
+        // 7. FINAL POSITION VALUE
+        // =====================================================
 
         BigDecimal positionValue =
                 entryPrice

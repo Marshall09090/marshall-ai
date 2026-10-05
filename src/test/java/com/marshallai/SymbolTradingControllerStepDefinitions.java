@@ -74,6 +74,7 @@ public class SymbolTradingControllerStepDefinitions {
     public void theSymbolTradingRequestHasNormalEventRisk() {
 
         eventType = "NONE";
+
         eventDescription =
                 "No major market event";
 
@@ -296,6 +297,67 @@ public class SymbolTradingControllerStepDefinitions {
                         response.tradeApprovalStatus()
                 ),
                 "Expected trade not to be approved"
+        );
+    }
+
+    // =========================================================
+    // NON-EXECUTABLE POSITION SAFETY
+    // =========================================================
+
+    @Then("the symbol trading quantity should be {int}")
+    public void theSymbolTradingQuantityShouldBe(
+            int expectedQuantity) {
+
+        assertNotNull(response);
+
+        assertEquals(
+                expectedQuantity,
+                response.quantity(),
+                "Unexpected executable quantity"
+        );
+    }
+
+    @Then("the symbol trading position value should be {int}")
+    public void theSymbolTradingPositionValueShouldBe(
+            int expectedPositionValue) {
+
+        assertNotNull(response);
+        assertNotNull(
+                response.positionValue(),
+                "Position value should not be null"
+        );
+
+        assertEquals(
+                0,
+                response.positionValue()
+                        .compareTo(
+                                BigDecimal.valueOf(
+                                        expectedPositionValue
+                                )
+                        ),
+                "Unexpected executable position value"
+        );
+    }
+
+    @Then("the symbol trading risk amount should be {int}")
+    public void theSymbolTradingRiskAmountShouldBe(
+            int expectedRiskAmount) {
+
+        assertNotNull(response);
+        assertNotNull(
+                response.riskAmount(),
+                "Risk amount should not be null"
+        );
+
+        assertEquals(
+                0,
+                response.riskAmount()
+                        .compareTo(
+                                BigDecimal.valueOf(
+                                        expectedRiskAmount
+                                )
+                        ),
+                "Unexpected executable risk amount"
         );
     }
 

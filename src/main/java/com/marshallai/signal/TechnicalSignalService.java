@@ -58,15 +58,11 @@ public class TechnicalSignalService {
                         RSI_PERIOD
                 );
 
-        if (rsi.compareTo(
-                RSI_BULLISH_LEVEL
-        ) >= 0) {
+        if (rsi.compareTo(RSI_BULLISH_LEVEL) >= 0) {
 
             bullishWeightedScore += 1;
 
-        } else if (rsi.compareTo(
-                RSI_BEARISH_LEVEL
-        ) <= 0) {
+        } else if (rsi.compareTo(RSI_BEARISH_LEVEL) <= 0) {
 
             bearishWeightedScore += 1;
         }
@@ -82,15 +78,11 @@ public class TechnicalSignalService {
                         MACD_SLOW_PERIOD
                 );
 
-        if (macd.compareTo(
-                BigDecimal.ZERO
-        ) > 0) {
+        if (macd.compareTo(BigDecimal.ZERO) > 0) {
 
             bullishWeightedScore += 2;
 
-        } else if (macd.compareTo(
-                BigDecimal.ZERO
-        ) < 0) {
+        } else if (macd.compareTo(BigDecimal.ZERO) < 0) {
 
             bearishWeightedScore += 2;
         }
@@ -110,15 +102,11 @@ public class TechnicalSignalService {
                         closingPrices.size() - 1
                 );
 
-        if (latestClose.compareTo(
-                ema
-        ) > 0) {
+        if (latestClose.compareTo(ema) > 0) {
 
             bullishWeightedScore += 1;
 
-        } else if (latestClose.compareTo(
-                ema
-        ) < 0) {
+        } else if (latestClose.compareTo(ema) < 0) {
 
             bearishWeightedScore += 1;
         }
@@ -135,9 +123,7 @@ public class TechnicalSignalService {
                         ADX_PERIOD
                 );
 
-        if (adx.compareTo(
-                ADX_TREND_THRESHOLD
-        ) >= 0) {
+        if (adx.compareTo(ADX_TREND_THRESHOLD) >= 0) {
 
             BigDecimal positiveDi =
                     indicatorService.calculatePositiveDi(
@@ -155,15 +141,11 @@ public class TechnicalSignalService {
                             ADX_PERIOD
                     );
 
-            if (positiveDi.compareTo(
-                    negativeDi
-            ) > 0) {
+            if (positiveDi.compareTo(negativeDi) > 0) {
 
                 bullishWeightedScore += 2;
 
-            } else if (negativeDi.compareTo(
-                    positiveDi
-            ) > 0) {
+            } else if (negativeDi.compareTo(positiveDi) > 0) {
 
                 bearishWeightedScore += 2;
             }
@@ -177,23 +159,34 @@ public class TechnicalSignalService {
                 bullishWeightedScore
                         + bearishWeightedScore;
 
-        int confidencePercent = 0;
+        /*
+         * No directional evidence means no technical confidence.
+         *
+         * This explicit guard prevents a 0 bullish / 0 bearish
+         * technical result from ever being represented as 100%
+         * confidence.
+         */
+        if (totalWeightedScore == 0) {
 
-        if (totalWeightedScore > 0) {
-
-            int dominantWeightedScore =
-                    Math.max(
-                            bullishWeightedScore,
-                            bearishWeightedScore
-                    );
-
-            confidencePercent =
-                    (int) Math.round(
-                            dominantWeightedScore
-                                    * 100.0
-                                    / totalWeightedScore
-                    );
+            return new TechnicalSignal(
+                    0,
+                    0,
+                    0
+            );
         }
+
+        int dominantWeightedScore =
+                Math.max(
+                        bullishWeightedScore,
+                        bearishWeightedScore
+                );
+
+        int confidencePercent =
+                (int) Math.round(
+                        dominantWeightedScore
+                                * 100.0
+                                / totalWeightedScore
+                );
 
         return new TechnicalSignal(
                 bullishWeightedScore,
@@ -216,18 +209,15 @@ public class TechnicalSignalService {
             );
         }
 
-        if (highPrices.size()
-                != lowPrices.size()
-                || highPrices.size()
-                != closingPrices.size()) {
+        if (highPrices.size() != lowPrices.size()
+                || highPrices.size() != closingPrices.size()) {
 
             throw new IllegalArgumentException(
                     "High, low and closing prices must have equal sizes"
             );
         }
 
-        if (closingPrices.size()
-                < MACD_SLOW_PERIOD + 1) {
+        if (closingPrices.size() < MACD_SLOW_PERIOD + 1) {
 
             throw new IllegalArgumentException(
                     "At least 27 market prices are required"

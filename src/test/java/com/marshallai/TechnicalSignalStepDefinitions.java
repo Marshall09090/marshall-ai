@@ -86,6 +86,28 @@ public class TechnicalSignalStepDefinitions {
         buildCandles(closes);
     }
 
+    @Given("a technical market with no directional evidence")
+    public void aTechnicalMarketWithNoDirectionalEvidence() {
+
+        List<BigDecimal> closes =
+                new ArrayList<>();
+
+        /*
+         * Use a completely flat market.
+         *
+         * There is no upward or downward price movement, so the
+         * technical engine should not produce bullish or bearish
+         * directional evidence.
+         */
+        for (int i = 0; i < 30; i++) {
+            closes.add(
+                    BigDecimal.valueOf(100)
+            );
+        }
+
+        buildCandles(closes);
+    }
+
     @When("MarshallAi evaluates the technical signal")
     public void marshallAiEvaluatesTheTechnicalSignal() {
 

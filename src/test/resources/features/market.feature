@@ -10,7 +10,6 @@ Feature: Nexora market data
     Then the market quote symbol should be "AAPL"
     And the market quote asset type should be "STOCK"
     And the market quote should contain a price
-    And the market quote should contain a price
     And the market quote price should be greater than zero
     And the market quote should contain a timestamp
 
