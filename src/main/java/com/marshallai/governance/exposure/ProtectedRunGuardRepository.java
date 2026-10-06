@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -18,6 +19,15 @@ public class ProtectedRunGuardRepository {
 
     private static final String ACQUIRE_REFUSAL_REASON =
             "TARGET_NOT_RESERVED_OR_GOVERNANCE_INTEGRITY_MISMATCH";
+
+    private static final String GOVERNANCE_INTEGRITY_MISMATCH =
+            "GOVERNANCE_INTEGRITY_MISMATCH";
+
+    private static final String EXPOSURE_TRANSITION_REFUSED =
+            "EXPOSURE_TRANSITION_REFUSED";
+
+    private static final String PROTECTED_RUN_OWNERSHIP_MISMATCH =
+            "PROTECTED_RUN_OWNERSHIP_MISMATCH";
 
     private final JdbcTemplate jdbcTemplate;
     private final TransactionTemplate transactionTemplate;
@@ -43,6 +53,12 @@ public class ProtectedRunGuardRepository {
                 new TransactionTemplate(transactionManager);
     }
 
+    /**
+     * Creates a protected validation or holdout reservation.
+     *
+     * The mutable guard row and the initial RESERVED ledger event
+     * are created in the same database transaction.
+     */
     public long createReservation(
             String strategyVersion,
             String protectedPeriodId,
@@ -126,7 +142,7 @@ public class ProtectedRunGuardRepository {
                                     eventId,
                                     createdGuardId,
                                     null,
-                                    "RESERVED",
+                                    ProtectedRunState.RESERVED.name(),
                                     null,
                                     ProtectedRunState.RESERVED,
                                     null,
@@ -140,7 +156,7 @@ public class ProtectedRunGuardRepository {
                             eventId,
                             createdGuardId,
                             null,
-                            "RESERVED",
+                            ProtectedRunState.RESERVED.name(),
                             null,
                             ProtectedRunState.RESERVED,
                             null,
@@ -163,6 +179,25 @@ public class ProtectedRunGuardRepository {
         return guardId;
     }
 
+    /**
+     * Atomically acquires a protected target.
+     *
+     * IMPORTANT:
+     *
+     * We deliberately do not perform:
+     *
+     *     SELECT state
+     *     Java validation
+     *     UPDATE state
+     *
+     * because two concurrent requests could both observe RESERVED.
+     *
+     * Instead the state check and transition happen in one
+     * conditional UPDATE.
+     *
+     * The UPDATE also refuses acquisition when the mutable guard
+     * disagrees with the latest append-only ledger state.
+     */
     public AcquisitionResult acquireReservedTarget(
             long guardId,
             UUID runId,
@@ -170,11 +205,9 @@ public class ProtectedRunGuardRepository {
             String configurationHash,
             Instant eventTimestamp) {
 
-        if (guardId <= 0) {
-            throw new IllegalArgumentException(
-                    "Guard ID must be greater than zero"
-            );
-        }
+        requirePositiveGuardId(
+                guardId
+        );
 
         requireNotNull(
                 runId,
@@ -230,9 +263,12 @@ public class ProtectedRunGuardRepository {
                             );
 
                     if (affectedRows == 0) {
+
                         return AcquisitionResult.refused(
                                 guardId,
-                                ACQUIRE_REFUSAL_REASON
+                                classifyAcquisitionRefusal(
+                                        guardId
+                                )
                         );
                     }
 
@@ -244,6 +280,13 @@ public class ProtectedRunGuardRepository {
                         );
                     }
 
+                    /*
+                     * At this point the guard row is already
+                     * RUNNING_UNEXPOSED inside this transaction.
+                     *
+                     * The latest ledger event is intentionally still
+                     * RESERVED until we append the matching transition.
+                     */
                     LatestLedgerEvent previousEvent =
                             requireLatestLedgerEvent(
                                     guardId
@@ -306,14 +349,193 @@ public class ProtectedRunGuardRepository {
         return result;
     }
 
+    /**
+     * Persists the critical RUNNING_UNEXPOSED -> EXPOSED boundary.
+     *
+     * Protected results must NOT be logged, returned, or otherwise
+     * made visible before this method completes successfully.
+     *
+     * The guard state change and EXPOSED ledger event commit in the
+     * same transaction.
+     *
+     * The market-data fingerprint is frozen at exposure time because
+     * deterministic recovery of an incomplete exposed run must later
+     * prove that the exact same data was used.
+     */
+    public ExposureResult persistExposed(
+            long guardId,
+            UUID runId,
+            UUID instanceId,
+            String configurationHash,
+            String marketDataFingerprint,
+            Instant eventTimestamp) {
+
+        requirePositiveGuardId(
+                guardId
+        );
+
+        requireNotNull(
+                runId,
+                "Run ID"
+        );
+
+        requireNotNull(
+                instanceId,
+                "Instance ID"
+        );
+
+        requireText(
+                configurationHash,
+                "Configuration hash"
+        );
+
+        requireText(
+                marketDataFingerprint,
+                "Market-data fingerprint"
+        );
+
+        requireNotNull(
+                eventTimestamp,
+                "Event timestamp"
+        );
+
+        ExposureResult result =
+                transactionTemplate.execute(status -> {
+
+                    int affectedRows =
+                            jdbcTemplate.update(
+                                    """
+                                    UPDATE protected_run_guard AS guard
+                                    SET
+                                        state = 'EXPOSED',
+                                        market_data_fingerprint = ?
+                                    WHERE guard.id = ?
+                                      AND guard.state = 'RUNNING_UNEXPOSED'
+                                      AND guard.run_id = ?
+                                      AND guard.instance_id = ?
+                                      AND guard.configuration_hash = ?
+                                      AND EXISTS (
+                                          SELECT 1
+                                          FROM protected_run_event_ledger AS ledger
+                                          WHERE ledger.guard_id = guard.id
+                                            AND ledger.sequence_number = (
+                                                SELECT MAX(latest.sequence_number)
+                                                FROM protected_run_event_ledger AS latest
+                                                WHERE latest.guard_id = guard.id
+                                            )
+                                            AND ledger.new_state = guard.state
+                                      )
+                                    """,
+                                    marketDataFingerprint,
+                                    guardId,
+                                    runId,
+                                    instanceId,
+                                    configurationHash
+                            );
+
+                    if (affectedRows == 0) {
+
+                        ExposureRefusal refusal =
+                                classifyExposureRefusal(
+                                        guardId,
+                                        runId,
+                                        instanceId,
+                                        configurationHash
+                                );
+
+                        return ExposureResult.refused(
+                                guardId,
+                                refusal.currentState(),
+                                refusal.reason()
+                        );
+                    }
+
+                    if (affectedRows != 1) {
+                        throw new IllegalStateException(
+                                "EXPOSED transition affected "
+                                        + affectedRows
+                                        + " rows"
+                        );
+                    }
+
+                    /*
+                     * The guard is EXPOSED inside this transaction,
+                     * while the latest ledger event is still
+                     * RUNNING_UNEXPOSED until the matching event
+                     * below is appended.
+                     */
+                    LatestLedgerEvent previousEvent =
+                            requireLatestLedgerEvent(
+                                    guardId
+                            );
+
+                    if (previousEvent.state()
+                            != ProtectedRunState.RUNNING_UNEXPOSED) {
+
+                        throw new IllegalStateException(
+                                "Latest ledger state must be RUNNING_UNEXPOSED before exposure"
+                        );
+                    }
+
+                    UUID eventId =
+                            UUID.randomUUID();
+
+                    String eventHash =
+                            calculateEventHash(
+                                    eventId,
+                                    guardId,
+                                    runId,
+                                    ProtectedRunState.EXPOSED.name(),
+                                    ProtectedRunState.RUNNING_UNEXPOSED,
+                                    ProtectedRunState.EXPOSED,
+                                    instanceId,
+                                    configurationHash,
+                                    marketDataFingerprint,
+                                    eventTimestamp,
+                                    previousEvent.eventHash()
+                            );
+
+                    insertLedgerEvent(
+                            eventId,
+                            guardId,
+                            runId,
+                            ProtectedRunState.EXPOSED.name(),
+                            ProtectedRunState.RUNNING_UNEXPOSED,
+                            ProtectedRunState.EXPOSED,
+                            instanceId,
+                            configurationHash,
+                            marketDataFingerprint,
+                            eventTimestamp,
+                            previousEvent.eventHash(),
+                            eventHash
+                    );
+
+                    return ExposureResult.exposed(
+                            guardId,
+                            runId,
+                            instanceId,
+                            marketDataFingerprint
+                    );
+                });
+
+        if (result == null) {
+            throw new IllegalStateException(
+                    "Protected exposure transaction returned no result"
+            );
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieves the current mutable guard snapshot.
+     */
     public GuardSnapshot requireGuard(
             long guardId) {
 
-        if (guardId <= 0) {
-            throw new IllegalArgumentException(
-                    "Guard ID must be greater than zero"
-            );
-        }
+        requirePositiveGuardId(
+                guardId
+        );
 
         return jdbcTemplate.query(
                         """
@@ -334,7 +556,9 @@ public class ProtectedRunGuardRepository {
                         """,
                         (resultSet, rowNumber) ->
                                 new GuardSnapshot(
-                                        resultSet.getLong("id"),
+                                        resultSet.getLong(
+                                                "id"
+                                        ),
                                         resultSet.getString(
                                                 "strategy_version"
                                         ),
@@ -386,8 +610,15 @@ public class ProtectedRunGuardRepository {
                 );
     }
 
+    /**
+     * Returns a compact snapshot of the latest ledger state.
+     */
     public LedgerSnapshot requireLatestLedgerSnapshot(
             long guardId) {
+
+        requirePositiveGuardId(
+                guardId
+        );
 
         LatestLedgerEvent event =
                 requireLatestLedgerEvent(
@@ -401,7 +632,125 @@ public class ProtectedRunGuardRepository {
         );
     }
 
-    private LatestLedgerEvent requireLatestLedgerEvent(
+    /**
+     * Classifies a failed atomic acquisition.
+     *
+     * This classification occurs only AFTER the atomic conditional
+     * UPDATE has failed.
+     *
+     * It therefore does not introduce the unsafe
+     * read-state-then-update race.
+     */
+    private String classifyAcquisitionRefusal(
+            long guardId) {
+
+        GuardSnapshot guard =
+                requireGuard(
+                        guardId
+                );
+
+        Optional<LatestLedgerEvent> latestLedgerEvent =
+                findLatestLedgerEvent(
+                        guardId
+                );
+
+        if (latestLedgerEvent.isEmpty()) {
+            return GOVERNANCE_INTEGRITY_MISMATCH;
+        }
+
+        if (guard.state()
+                != latestLedgerEvent.get().state()) {
+
+            return GOVERNANCE_INTEGRITY_MISMATCH;
+        }
+
+        /*
+         * Preserve the existing generic refusal for normal
+         * non-RESERVED acquisition failures so the existing
+         * repository contract remains compatible.
+         */
+        return ACQUIRE_REFUSAL_REASON;
+    }
+
+    /**
+     * Classifies a failed RUNNING_UNEXPOSED -> EXPOSED transition.
+     */
+    private ExposureRefusal classifyExposureRefusal(
+            long guardId,
+            UUID requestedRunId,
+            UUID requestedInstanceId,
+            String requestedConfigurationHash) {
+
+        GuardSnapshot guard =
+                requireGuard(
+                        guardId
+                );
+
+        Optional<LatestLedgerEvent> latestLedgerEvent =
+                findLatestLedgerEvent(
+                        guardId
+                );
+
+        if (latestLedgerEvent.isEmpty()) {
+
+            return new ExposureRefusal(
+                    guard.state(),
+                    GOVERNANCE_INTEGRITY_MISMATCH
+            );
+        }
+
+        if (guard.state()
+                != latestLedgerEvent.get().state()) {
+
+            return new ExposureRefusal(
+                    guard.state(),
+                    GOVERNANCE_INTEGRITY_MISMATCH
+            );
+        }
+
+        if (guard.state()
+                != ProtectedRunState.RUNNING_UNEXPOSED) {
+
+            return new ExposureRefusal(
+                    guard.state(),
+                    EXPOSURE_TRANSITION_REFUSED
+            );
+        }
+
+        if (!requestedRunId.equals(
+                guard.runId())) {
+
+            return new ExposureRefusal(
+                    guard.state(),
+                    PROTECTED_RUN_OWNERSHIP_MISMATCH
+            );
+        }
+
+        if (!requestedInstanceId.equals(
+                guard.instanceId())) {
+
+            return new ExposureRefusal(
+                    guard.state(),
+                    PROTECTED_RUN_OWNERSHIP_MISMATCH
+            );
+        }
+
+        if (!requestedConfigurationHash.equals(
+                guard.configurationHash())) {
+
+            return new ExposureRefusal(
+                    guard.state(),
+                    PROTECTED_RUN_OWNERSHIP_MISMATCH
+            );
+        }
+
+        return new ExposureRefusal(
+                guard.state(),
+                EXPOSURE_TRANSITION_REFUSED
+        );
+    }
+
+    private Optional<LatestLedgerEvent> findLatestLedgerEvent(
             long guardId) {
 
         return jdbcTemplate.query(
@@ -428,7 +777,15 @@ public class ProtectedRunGuardRepository {
                         guardId
                 )
                 .stream()
-                .findFirst()
+                .findFirst();
+    }
+
+    private LatestLedgerEvent requireLatestLedgerEvent(
+            long guardId) {
+
+        return findLatestLedgerEvent(
+                guardId
+        )
                 .orElseThrow(
                         () -> new IllegalStateException(
                                 "Protected run guard has no ledger history: "
@@ -437,6 +794,17 @@ public class ProtectedRunGuardRepository {
                 );
     }
 
+    /**
+     * Appends one immutable ledger event.
+     *
+     * PostgreSQL JDBC does not reliably infer the SQL type for
+     * java.time.Instant when JdbcTemplate receives it as a generic
+     * argument, so the value is converted to Timestamp only at the
+     * JDBC boundary.
+     *
+     * The original Instant remains the canonical value used by the
+     * hash chain.
+     */
     private void insertLedgerEvent(
             UUID eventId,
             long guardId,
@@ -451,16 +819,10 @@ public class ProtectedRunGuardRepository {
             String previousEventHash,
             String eventHash) {
 
-        /*
-         * PostgreSQL JDBC does not infer a SQL type directly
-         * from java.time.Instant when JdbcTemplate receives it
-         * as a generic argument.
-         *
-         * Convert it explicitly to java.sql.Timestamp before
-         * binding it to the TIMESTAMPTZ event_timestamp column.
-         */
         Timestamp jdbcEventTimestamp =
-                Timestamp.from(eventTimestamp);
+                Timestamp.from(
+                        eventTimestamp
+                );
 
         int inserted =
                 jdbcTemplate.update(
@@ -506,6 +868,12 @@ public class ProtectedRunGuardRepository {
         }
     }
 
+    /**
+     * Calculates the tamper-evident hash for one ledger event.
+     *
+     * previousEventHash links this event to the event before it,
+     * producing the governance hash chain.
+     */
     private String calculateEventHash(
             UUID eventId,
             long guardId,
@@ -534,7 +902,9 @@ public class ProtectedRunGuardRepository {
                                 : previousState.name()
                 )
                         + "|"
-                        + canonical(newState.name())
+                        + canonical(
+                        newState.name()
+                )
                         + "|"
                         + canonical(instanceId)
                         + "|"
@@ -561,7 +931,9 @@ public class ProtectedRunGuardRepository {
                     );
 
             return HexFormat.of()
-                    .formatHex(hash);
+                    .formatHex(
+                            hash
+                    );
 
         } catch (Exception exception) {
 
@@ -578,6 +950,16 @@ public class ProtectedRunGuardRepository {
         return value == null
                 ? ""
                 : value.toString();
+    }
+
+    private static void requirePositiveGuardId(
+            long guardId) {
+
+        if (guardId <= 0) {
+            throw new IllegalArgumentException(
+                    "Guard ID must be greater than zero"
+            );
+        }
     }
 
     private static void requireText(
@@ -610,6 +992,11 @@ public class ProtectedRunGuardRepository {
     private record LatestLedgerEvent(
             ProtectedRunState state,
             String eventHash) {
+    }
+
+    private record ExposureRefusal(
+            ProtectedRunState currentState,
+            String reason) {
     }
 
     public record GuardSnapshot(
@@ -661,6 +1048,49 @@ public class ProtectedRunGuardRepository {
                     false,
                     guardId,
                     null,
+                    null,
+                    refusalReason
+            );
+        }
+    }
+
+    public record ExposureResult(
+            boolean exposed,
+            long guardId,
+            UUID runId,
+            UUID instanceId,
+            ProtectedRunState state,
+            String marketDataFingerprint,
+            String refusalReason) {
+
+        public static ExposureResult exposed(
+                long guardId,
+                UUID runId,
+                UUID instanceId,
+                String marketDataFingerprint) {
+
+            return new ExposureResult(
+                    true,
+                    guardId,
+                    runId,
+                    instanceId,
+                    ProtectedRunState.EXPOSED,
+                    marketDataFingerprint,
+                    null
+            );
+        }
+
+        public static ExposureResult refused(
+                long guardId,
+                ProtectedRunState currentState,
+                String refusalReason) {
+
+            return new ExposureResult(
+                    false,
+                    guardId,
+                    null,
+                    null,
+                    currentState,
                     null,
                     refusalReason
             );
