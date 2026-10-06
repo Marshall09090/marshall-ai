@@ -19,29 +19,70 @@ repositories {
 }
 
 dependencies {
-    // Database support — enable when we build persistence
-    // implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    /*
+     * ---------------------------------------------------------
+     * Application
+     * ---------------------------------------------------------
+     */
 
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
+    /*
+     * Workload 5 durable governance store.
+     *
+     * We are deliberately using JDBC rather than JPA for the
+     * protected-run guard/ledger because the governance contract
+     * requires explicit conditional UPDATE statements and tightly
+     * controlled transactions.
+     */
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+    /*
+     * Schema versioning.
+     */
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+
+    /*
+     * Durable production database driver.
+     */
+    runtimeOnly 'org.postgresql:postgresql'
+
     compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-    // Database driver — enable with persistence layer
-    // runtimeOnly 'org.postgresql:postgresql'
-
     annotationProcessor 'org.projectlombok:lombok'
 
-    // testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    /*
+     * ---------------------------------------------------------
+     * Tests
+     * ---------------------------------------------------------
+     */
+
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 
+    /*
+     * Spring Boot integration with Testcontainers.
+     */
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+
+    /*
+     * Real PostgreSQL integration testing.
+     */
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter:2.0.5'
+    testImplementation 'org.testcontainers:testcontainers-postgresql:2.0.5'
+
     testCompileOnly 'org.projectlombok:lombok'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
-    // Cucumber BDD testing
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    /*
+     * Cucumber BDD.
+     */
     testImplementation 'io.cucumber:cucumber-java:7.20.1'
     testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.20.1'
     testImplementation 'io.cucumber:cucumber-spring:7.20.1'
