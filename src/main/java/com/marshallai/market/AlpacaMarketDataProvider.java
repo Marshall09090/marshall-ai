@@ -408,7 +408,7 @@ public class AlpacaMarketDataProvider
 
             if (tokenNode == null
                     || tokenNode.isNull()
-                    || tokenNode.asText().isBlank()) {
+                    || tokenNode.asString().isBlank()) {
 
                 pageToken =
                         null;
@@ -416,7 +416,7 @@ public class AlpacaMarketDataProvider
             } else {
 
                 pageToken =
-                        tokenNode.asText();
+                        tokenNode.asString();
             }
 
         } while (pageToken != null);
@@ -656,7 +656,7 @@ public class AlpacaMarketDataProvider
                 Instant.parse(
                         bar.get(
                                 "t"
-                        ).asText()
+                        ).asString()
                 )
         );
     }
