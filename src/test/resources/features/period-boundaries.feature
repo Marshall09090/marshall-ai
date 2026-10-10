@@ -31,7 +31,7 @@ Feature: Governed evaluation period boundaries
     And the final bar closes at 100.00
     When the governed period ends
     Then the trade should be force-closed using the final bar close as the execution reference
-    And the exit reason should be "PERIOD_END"
+    And the period-boundary exit reason should be "PERIOD_END"
 
   Scenario: Period-end liquidation receives standard adverse auction slippage
     Given a long position remains open on the final bar of a governed period
@@ -40,7 +40,7 @@ Feature: Governed evaluation period boundaries
     When the period-end liquidation is modeled
     Then the period-end execution reference price should be 100.00
     And the modeled period-end SELL fill should be 99.98
-    And the exit reason should be "PERIOD_END"
+    And the period-boundary exit reason should be "PERIOD_END"
 
   Scenario: Period-end trades remain in governed portfolio results
     Given a trade exits with reason "PERIOD_END"
@@ -100,7 +100,7 @@ Feature: Governed evaluation period boundaries
     And the final bar closes at 95.00
     When final-bar exit priority is evaluated
     Then the stop should execute before period-end liquidation
-    And the exit reason should be "STOP"
+    And the period-boundary exit reason should be "STOP"
     And no second "PERIOD_END" exit should be created
 
   Scenario: A surviving final-bar position receives exactly one period-end exit
@@ -111,7 +111,7 @@ Feature: Governed evaluation period boundaries
     When final-bar exit priority is evaluated
     Then the stop should not trigger
     And exactly one period-end exit should be created
-    And the exit reason should be "PERIOD_END"
+    And the period-boundary exit reason should be "PERIOD_END"
 
   Scenario: Period boundaries are deterministic across repeated research runs
     Given the same tuning dataset

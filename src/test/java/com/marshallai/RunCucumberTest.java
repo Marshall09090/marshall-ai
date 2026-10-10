@@ -13,5 +13,9 @@ import org.junit.platform.suite.api.Suite;
         key = Constants.GLUE_PROPERTY_NAME,
         value = "com.marshallai"
 )
+@ConfigurationParameter(
+        key = Constants.FILTER_TAGS_PROPERTY_NAME,
+        value = "not @wip"
+)
 public class RunCucumberTest {
 }

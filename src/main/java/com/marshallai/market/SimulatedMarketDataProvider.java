@@ -1,5 +1,6 @@
 package com.marshallai.market;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -8,14 +9,14 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.context.annotation.Profile;
 
 @Service
 @Profile("!alpaca")
 public class SimulatedMarketDataProvider
-        implements MarketDataProvider {
+        implements MarketDataProviderSource {
 
-    private static final String DEFAULT_TIMEFRAME = "1m";
+    private static final String DEFAULT_TIMEFRAME =
+            "1m";
 
     public enum MarketMode {
         STRONGLY_BULLISH,
@@ -25,12 +26,20 @@ public class SimulatedMarketDataProvider
     private MarketMode marketMode =
             MarketMode.STRONGLY_BULLISH;
 
+    @Override
+    public MarketDataProviderType providerType() {
+
+        return MarketDataProviderType.SIMULATED;
+    }
+
     public void useStronglyBullishMarket() {
+
         marketMode =
                 MarketMode.STRONGLY_BULLISH;
     }
 
     public void useMixedMarket() {
+
         marketMode =
                 MarketMode.MIXED;
     }
@@ -45,7 +54,8 @@ public class SimulatedMarketDataProvider
                 candleCount
         );
 
-        Instant endTime = Instant.now();
+        Instant endTime =
+                Instant.now();
 
         Instant startTime =
                 endTime.minus(
@@ -62,6 +72,19 @@ public class SimulatedMarketDataProvider
         );
     }
 
+    /**
+     * Returns simulated candles using the same historical
+     * range contract as the real provider:
+     *
+     *     [from, to)
+     *
+     * The beginning is inclusive.
+     * The end is exclusive.
+     *
+     * Simulated data deliberately does not pass through
+     * ProtectedMarketDataBoundary because it contains no
+     * protected real-market-data exposure.
+     */
     @Override
     public List<MarketCandle> getHistoricalCandles(
             String symbol,
@@ -77,24 +100,49 @@ public class SimulatedMarketDataProvider
         );
 
         long intervalMinutes =
-                timeframeToMinutes(timeframe);
+                timeframeToMinutes(
+                        timeframe
+                );
 
-        long requestedMinutes =
+        long intervalMillis =
+                Duration.ofMinutes(
+                        intervalMinutes
+                ).toMillis();
+
+        long requestedMillis =
                 Duration.between(
                         from,
                         to
-                ).toMinutes();
+                ).toMillis();
 
+        /*
+         * Calculate the number of candle timestamps that are:
+         *
+         *     >= from
+         *     <  to
+         *
+         * This is ceiling(requestedDuration / interval).
+         *
+         * Subtracting one before integer division avoids
+         * generating a candle exactly at the exclusive
+         * upper boundary when the duration is an exact
+         * multiple of the timeframe.
+         */
         long calculatedCandleCount =
-                (requestedMinutes / intervalMinutes) + 1;
+                ((requestedMillis - 1)
+                        / intervalMillis)
+                        + 1;
 
         if (calculatedCandleCount <= 0) {
+
             throw new IllegalArgumentException(
                     "Historical range must contain at least one candle"
             );
         }
 
-        if (calculatedCandleCount > Integer.MAX_VALUE) {
+        if (calculatedCandleCount
+                > Integer.MAX_VALUE) {
+
             throw new IllegalArgumentException(
                     "Requested historical range is too large"
             );
@@ -103,12 +151,34 @@ public class SimulatedMarketDataProvider
         int candleCount =
                 (int) calculatedCandleCount;
 
-        return buildMarket(
-                symbol,
-                candleCount,
-                timeframe,
-                from,
-                intervalMinutes
+        List<MarketCandle> candles =
+                buildMarket(
+                        symbol,
+                        candleCount,
+                        timeframe,
+                        from,
+                        intervalMinutes
+                );
+
+        /*
+         * Fail closed if future changes to candle generation
+         * accidentally violate the [from, to) contract.
+         */
+        for (MarketCandle candle : candles) {
+
+            if (candle.timestamp().isBefore(from)
+                    || !candle.timestamp().isBefore(to)) {
+
+                throw new IllegalStateException(
+                        "Simulated market candle outside "
+                                + "requested range: "
+                                + candle.timestamp()
+                );
+            }
+        }
+
+        return List.copyOf(
+                candles
         );
     }
 
@@ -121,7 +191,8 @@ public class SimulatedMarketDataProvider
 
         List<BigDecimal> closingPrices;
 
-        if (marketMode == MarketMode.MIXED) {
+        if (marketMode
+                == MarketMode.MIXED) {
 
             closingPrices =
                     buildMixedClosingPrices(
@@ -190,7 +261,6 @@ public class SimulatedMarketDataProvider
          * This should remain below the
          * 80% trading threshold.
          */
-
         if (candleCount >= 30) {
 
             int normalTrendCount =
@@ -214,25 +284,33 @@ public class SimulatedMarketDataProvider
 
             closingPrices.add(
                     peak.subtract(
-                            BigDecimal.valueOf(3)
+                            BigDecimal.valueOf(
+                                    3
+                            )
                     )
             );
 
             closingPrices.add(
                     peak.subtract(
-                            BigDecimal.valueOf(6)
+                            BigDecimal.valueOf(
+                                    6
+                            )
                     )
             );
 
             closingPrices.add(
                     peak.subtract(
-                            BigDecimal.valueOf(9)
+                            BigDecimal.valueOf(
+                                    9
+                            )
                     )
             );
 
             closingPrices.add(
                     peak.subtract(
-                            BigDecimal.valueOf(12)
+                            BigDecimal.valueOf(
+                                    12
+                            )
                     )
             );
 
@@ -278,7 +356,9 @@ public class SimulatedMarketDataProvider
              i++) {
 
             BigDecimal close =
-                    closingPrices.get(i);
+                    closingPrices.get(
+                            i
+                    );
 
             BigDecimal open;
 
@@ -300,13 +380,17 @@ public class SimulatedMarketDataProvider
             }
 
             BigDecimal high =
-                    open.max(close)
+                    open.max(
+                                    close
+                            )
                             .add(
                                     BigDecimal.ONE
                             );
 
             BigDecimal low =
-                    open.min(close)
+                    open.min(
+                                    close
+                            )
                             .subtract(
                                     BigDecimal.ONE
                             );
@@ -349,13 +433,27 @@ public class SimulatedMarketDataProvider
                         .trim()
                         .toLowerCase()
                 ) {
-            case "1m" -> 1;
-            case "5m" -> 5;
-            case "15m" -> 15;
-            case "30m" -> 30;
-            case "1h" -> 60;
-            case "4h" -> 240;
-            case "1d" -> 1440;
+
+            case "1m" ->
+                    1;
+
+            case "5m" ->
+                    5;
+
+            case "15m" ->
+                    15;
+
+            case "30m" ->
+                    30;
+
+            case "1h" ->
+                    60;
+
+            case "4h" ->
+                    240;
+
+            case "1d" ->
+                    1440;
 
             default ->
                     throw new IllegalArgumentException(
@@ -369,7 +467,9 @@ public class SimulatedMarketDataProvider
             String symbol,
             int candleCount) {
 
-        validateSymbol(symbol);
+        validateSymbol(
+                symbol
+        );
 
         if (candleCount <= 0) {
 
@@ -385,7 +485,9 @@ public class SimulatedMarketDataProvider
             Instant from,
             Instant to) {
 
-        validateSymbol(symbol);
+        validateSymbol(
+                symbol
+        );
 
         if (timeframe == null
                 || timeframe.isBlank()) {
@@ -409,10 +511,15 @@ public class SimulatedMarketDataProvider
             );
         }
 
-        if (to.isBefore(from)) {
+        /*
+         * A [from, to) interval must have positive duration.
+         *
+         * An equal start/end contains no timestamps.
+         */
+        if (!to.isAfter(from)) {
 
             throw new IllegalArgumentException(
-                    "Historical end time cannot be before start time"
+                    "Historical end time must be after start time"
             );
         }
 
@@ -420,7 +527,9 @@ public class SimulatedMarketDataProvider
          * Validate the timeframe before attempting
          * to calculate the historical candle range.
          */
-        timeframeToMinutes(timeframe);
+        timeframeToMinutes(
+                timeframe
+        );
     }
 
     private void validateSymbol(

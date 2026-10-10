@@ -38,10 +38,18 @@ public class GovernanceStoreMigrationTest {
             var migrationResult =
                     flyway.migrate();
 
+            /*
+             * A fresh governance database currently consists of:
+             *
+             * V1 - initial protected-run governance store
+             * V2 - governed verdict support
+             * V3 - protected market-data authorization support
+             * V4 - protected-run market-data source provenance
+             */
             assertEquals(
-                    1,
+                    4,
                     migrationResult.migrationsExecuted,
-                    "Exactly one governance migration should execute"
+                    "Exactly four governance migrations should execute"
             );
 
             try (Connection connection =
@@ -50,6 +58,10 @@ public class GovernanceStoreMigrationTest {
                                  postgres.getUsername(),
                                  postgres.getPassword()
                          )) {
+
+                // =====================================================
+                // V1 TABLES
+                // =====================================================
 
                 assertTrue(
                         tableExists(
@@ -66,6 +78,10 @@ public class GovernanceStoreMigrationTest {
                         ),
                         "protected_run_event_ledger should exist"
                 );
+
+                // =====================================================
+                // V1 DATABASE GOVERNANCE TRIGGERS
+                // =====================================================
 
                 assertTrue(
                         triggerExists(
@@ -113,6 +129,264 @@ public class GovernanceStoreMigrationTest {
                                 "trg_ledger_matches_guard"
                         ),
                         "Ledger-to-guard consistency trigger should exist"
+                );
+
+                // =====================================================
+                // V2 GOVERNED VERDICT CONTRACT
+                // =====================================================
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_run_event_ledger",
+                                "governed_verdict"
+                        ),
+                        "V2 should add governed_verdict to protected_run_event_ledger"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_run_event_ledger",
+                                "chk_protected_run_event_governed_verdict"
+                        ),
+                        "V2 governed-verdict constraint should exist"
+                );
+
+                // =====================================================
+                // V3 PROTECTED MARKET-DATA AUTHORIZATION TABLES
+                // =====================================================
+
+                assertTrue(
+                        tableExists(
+                                connection,
+                                "protected_tuning_period"
+                        ),
+                        "V3 should create protected_tuning_period"
+                );
+
+                assertTrue(
+                        tableExists(
+                                connection,
+                                "protected_holdout_authorization"
+                        ),
+                        "V3 should create protected_holdout_authorization"
+                );
+
+                // =====================================================
+                // V3 TUNING-PERIOD CONTRACT
+                // =====================================================
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_tuning_period",
+                                "strategy_version"
+                        ),
+                        "protected_tuning_period should contain strategy_version"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_tuning_period",
+                                "tuning_period_id"
+                        ),
+                        "protected_tuning_period should contain tuning_period_id"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_tuning_period",
+                                "period_start"
+                        ),
+                        "protected_tuning_period should contain period_start"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_tuning_period",
+                                "period_end"
+                        ),
+                        "protected_tuning_period should contain period_end"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_tuning_period",
+                                "ck_protected_tuning_period_dates"
+                        ),
+                        "Tuning-period date constraint should exist"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_tuning_period",
+                                "uq_protected_tuning_period_strategy"
+                        ),
+                        "Strategy tuning-period uniqueness constraint should exist"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_tuning_period",
+                                "uq_protected_tuning_period_identity"
+                        ),
+                        "Tuning-period identity uniqueness constraint should exist"
+                );
+
+                // =====================================================
+                // V3 HOLDOUT AUTHORIZATION CONTRACT
+                // =====================================================
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "guard_id"
+                        ),
+                        "protected_holdout_authorization should contain guard_id"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "strategy_version"
+                        ),
+                        "protected_holdout_authorization should contain strategy_version"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "protected_period_id"
+                        ),
+                        "protected_holdout_authorization should contain protected_period_id"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "authorization_timestamp"
+                        ),
+                        "protected_holdout_authorization should contain authorization_timestamp"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "fk_protected_holdout_authorization_guard"
+                        ),
+                        "Holdout authorization should reference protected_run_guard"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "uq_protected_holdout_authorization_guard"
+                        ),
+                        "Each protected guard should have at most one holdout authorization"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_holdout_authorization",
+                                "uq_protected_holdout_authorization_target"
+                        ),
+                        "Each protected holdout target should have at most one authorization"
+                );
+
+                // =====================================================
+                // V4 PROTECTED-RUN DATA-SOURCE PROVENANCE
+                // =====================================================
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_run_guard",
+                                "data_source_type"
+                        ),
+                        "V4 should add data_source_type to protected_run_guard"
+                );
+
+                assertTrue(
+                        columnExists(
+                                connection,
+                                "protected_run_event_ledger",
+                                "data_source_type"
+                        ),
+                        "V4 should add data_source_type to protected_run_event_ledger"
+                );
+
+                // =====================================================
+                // V4 GUARD DATA-SOURCE CONTRACT
+                // =====================================================
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_run_guard",
+                                "ck_protected_run_guard_data_source_type"
+                        ),
+                        "Guard data-source domain constraint should exist"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_run_guard",
+                                "ck_protected_run_guard_source_by_state"
+                        ),
+                        "Guard state/source relationship constraint should exist"
+                );
+
+                assertTrue(
+                        triggerExists(
+                                connection,
+                                "trg_validate_protected_guard_data_source_type"
+                        ),
+                        "Guard data-source lifecycle trigger should exist"
+                );
+
+                // =====================================================
+                // V4 LEDGER DATA-SOURCE CONTRACT
+                // =====================================================
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_run_event_ledger",
+                                "ck_protected_run_event_data_source_type"
+                        ),
+                        "Ledger data-source provenance constraint should exist"
+                );
+
+                assertTrue(
+                        constraintExists(
+                                connection,
+                                "protected_run_event_ledger",
+                                "ck_governed_verdict_requires_real_data"
+                        ),
+                        "Governed verdicts should require REAL market data"
+                );
+
+                assertTrue(
+                        triggerExists(
+                                connection,
+                                "trg_validate_protected_run_data_source_type"
+                        ),
+                        "Ledger data-source continuity trigger should exist"
                 );
             }
         }
@@ -169,6 +443,90 @@ public class GovernanceStoreMigrationTest {
             statement.setString(
                     1,
                     triggerName
+            );
+
+            try (ResultSet resultSet =
+                         statement.executeQuery()) {
+
+                assertTrue(
+                        resultSet.next()
+                );
+
+                return resultSet.getBoolean(1);
+            }
+        }
+    }
+
+    private boolean columnExists(
+            Connection connection,
+            String tableName,
+            String columnName)
+            throws Exception {
+
+        String sql =
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = ?
+                      AND column_name = ?
+                )
+                """;
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            statement.setString(
+                    1,
+                    tableName
+            );
+
+            statement.setString(
+                    2,
+                    columnName
+            );
+
+            try (ResultSet resultSet =
+                         statement.executeQuery()) {
+
+                assertTrue(
+                        resultSet.next()
+                );
+
+                return resultSet.getBoolean(1);
+            }
+        }
+    }
+
+    private boolean constraintExists(
+            Connection connection,
+            String tableName,
+            String constraintName)
+            throws Exception {
+
+        String sql =
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.table_constraints
+                    WHERE table_schema = 'public'
+                      AND table_name = ?
+                      AND constraint_name = ?
+                )
+                """;
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            statement.setString(
+                    1,
+                    tableName
+            );
+
+            statement.setString(
+                    2,
+                    constraintName
             );
 
             try (ResultSet resultSet =

@@ -1,7 +1,8 @@
 package com.marshallai;
 
-import com.marshallai.portfolio.governance.PortfolioExecutionCostService;
 import com.marshallai.trading.execution.ExitReason;
+
+import com.marshallai.portfolio.governance.PortfolioExecutionCostService;
 import com.marshallai.trading.execution.TradeDefinition;
 import com.marshallai.trading.execution.TradeEntryResult;
 import com.marshallai.trading.execution.TradeEntryService;

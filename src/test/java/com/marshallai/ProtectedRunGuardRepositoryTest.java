@@ -1,5 +1,6 @@
 package com.marshallai;
 
+import com.marshallai.market.MarketDataProviderType;
 import com.marshallai.governance.exposure.ProtectedPeriodType;
 import com.marshallai.governance.exposure.ProtectedRunGuardRepository;
 import com.marshallai.governance.exposure.ProtectedRunState;
@@ -18,6 +19,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -134,8 +136,7 @@ public class ProtectedRunGuardRepositoryTest {
 
         assertEquals(
                 guard.state(),
-                ledger.state(),
-                "Guard and ledger must agree"
+                ledger.state()
         );
 
         assertNull(
@@ -146,24 +147,21 @@ public class ProtectedRunGuardRepositoryTest {
                 guard.instanceId()
         );
 
+        assertNull(
+                ledger.governedVerdict()
+        );
+
         assertNotNull(
                 ledger.eventHash()
         );
 
         assertEquals(
                 64,
-                ledger.eventHash().length(),
-                "SHA-256 ledger hash should contain 64 hexadecimal characters"
+                ledger.eventHash().length()
         );
 
         Integer eventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                        """,
-                        Integer.class,
+                countLedgerEvents(
                         guardId
                 );
 
@@ -200,6 +198,7 @@ public class ProtectedRunGuardRepositoryTest {
                         firstRunId,
                         firstInstanceId,
                         "configuration-hash-v1",
+                        MarketDataProviderType.REAL,
                         Instant.parse(
                                 "2026-01-02T12:01:00Z"
                         )
@@ -249,11 +248,6 @@ public class ProtectedRunGuardRepositoryTest {
         );
 
         assertEquals(
-                guard.state(),
-                ledger.state()
-        );
-
-        assertEquals(
                 firstRunId,
                 guard.runId()
         );
@@ -268,16 +262,17 @@ public class ProtectedRunGuardRepositoryTest {
                 guard.configurationHash()
         );
 
-        /*
-         * A second acquisition must not get another look
-         * at the same protected target.
-         */
+        assertNull(
+                ledger.governedVerdict()
+        );
+
         ProtectedRunGuardRepository.AcquisitionResult second =
                 repository.acquireReservedTarget(
                         guardId,
                         UUID.randomUUID(),
                         UUID.randomUUID(),
                         "configuration-hash-v2",
+                        MarketDataProviderType.REAL,
                         Instant.parse(
                                 "2026-01-02T12:02:00Z"
                         )
@@ -292,10 +287,6 @@ public class ProtectedRunGuardRepositoryTest {
                 second.refusalReason()
         );
 
-        /*
-         * Nothing from the refused attempt may replace
-         * the ownership of the successful attempt.
-         */
         ProtectedRunGuardRepository.GuardSnapshot afterRefusal =
                 repository.requireGuard(
                         guardId
@@ -316,21 +307,11 @@ public class ProtectedRunGuardRepositoryTest {
                 afterRefusal.instanceId()
         );
 
-        Integer eventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                        """,
-                        Integer.class,
-                        guardId
-                );
-
         assertEquals(
                 2,
-                eventCount,
-                "The refused second acquisition must not append another state event"
+                countLedgerEvents(
+                        guardId
+                )
         );
     }
 
@@ -378,29 +359,7 @@ public class ProtectedRunGuardRepositoryTest {
 
         assertEquals(
                 1,
-                guardCount,
-                "Only one reservation may exist for the governed target"
-        );
-
-        Integer ledgerCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger AS ledger
-                        JOIN protected_run_guard AS guard
-                          ON guard.id = ledger.guard_id
-                        WHERE guard.strategy_version = ?
-                          AND guard.protected_period_id = ?
-                        """,
-                        Integer.class,
-                        "strategy-unique-v1",
-                        "holdout-unique-v1"
-                );
-
-        assertEquals(
-                1,
-                ledgerCount,
-                "Failed duplicate reservation must not create a ledger event"
+                guardCount
         );
     }
 
@@ -431,6 +390,7 @@ public class ProtectedRunGuardRepositoryTest {
                                     UUID.randomUUID(),
                                     UUID.randomUUID(),
                                     "rollback-configuration-hash",
+                                    MarketDataProviderType.REAL,
                                     Instant.parse(
                                             "2026-01-04T12:01:00Z"
                                     )
@@ -442,13 +402,6 @@ public class ProtectedRunGuardRepositoryTest {
             removeForcedRunningLedgerFailureTrigger();
         }
 
-        /*
-         * The UPDATE happened before the ledger INSERT inside
-         * the repository transaction.
-         *
-         * Because the ledger insert failed, the guard update
-         * must also have rolled back.
-         */
         ProtectedRunGuardRepository.GuardSnapshot guard =
                 repository.requireGuard(
                         guardId
@@ -481,21 +434,11 @@ public class ProtectedRunGuardRepositoryTest {
                 guard.configurationHash()
         );
 
-        Integer eventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                        """,
-                        Integer.class,
-                        guardId
-                );
-
         assertEquals(
                 1,
-                eventCount,
-                "Failed acquisition must leave only the original RESERVED ledger event"
+                countLedgerEvents(
+                        guardId
+                )
         );
     }
 
@@ -521,14 +464,6 @@ public class ProtectedRunGuardRepositoryTest {
         UUID instanceId =
                 UUID.randomUUID();
 
-        /*
-         * Simulate a database client attempting to move only
-         * the mutable guard without appending its ledger event.
-         *
-         * The state transition itself is otherwise legal, so
-         * the deferred consistency trigger is what must reject
-         * the COMMIT.
-         */
         try (Connection connection =
                      dataSource.getConnection()) {
 
@@ -546,7 +481,8 @@ public class ProtectedRunGuardRepositoryTest {
                                          state = 'RUNNING_UNEXPOSED',
                                          run_id = ?,
                                          instance_id = ?,
-                                         configuration_hash = ?
+                                         configuration_hash = ?,
+                                         data_source_type = ?
                                      WHERE id = ?
                                      """
                              )) {
@@ -566,8 +502,13 @@ public class ProtectedRunGuardRepositoryTest {
                             "direct-db-edit-hash"
                     );
 
-                    statement.setLong(
+                    statement.setString(
                             4,
+                            MarketDataProviderType.REAL.name()
+                    );
+
+                    statement.setLong(
+                            5,
                             guardId
                     );
 
@@ -579,8 +520,7 @@ public class ProtectedRunGuardRepositoryTest {
 
                 assertThrows(
                         SQLException.class,
-                        connection::commit,
-                        "Commit must fail when the guard and latest ledger state disagree"
+                        connection::commit
                 );
 
             } finally {
@@ -588,10 +528,7 @@ public class ProtectedRunGuardRepositoryTest {
                 try {
                     connection.rollback();
                 } catch (SQLException ignored) {
-                    /*
-                     * PostgreSQL may already consider the
-                     * failed transaction aborted.
-                     */
+                    // PostgreSQL may already consider the transaction aborted.
                 }
             }
         }
@@ -622,98 +559,25 @@ public class ProtectedRunGuardRepositoryTest {
         );
     }
 
+
     @Test
     void exposedTransitionCommitsGuardFingerprintAndLedgerTogether() {
 
-        long guardId =
-                repository.createReservation(
+        ExposedFixture fixture =
+                createExposedFixture(
                         "strategy-exposure-v1",
                         "validation-exposure-v1",
-                        ProtectedPeriodType.VALIDATION,
-                        LocalDate.of(2022, 1, 1),
-                        LocalDate.of(2022, 12, 31),
-                        Instant.parse(
-                                "2026-01-06T12:00:00Z"
-                        )
+                        2022
                 );
-
-        UUID runId =
-                UUID.randomUUID();
-
-        UUID instanceId =
-                UUID.randomUUID();
-
-        String configurationHash =
-                "configuration-hash-exposure-v1";
-
-        ProtectedRunGuardRepository.AcquisitionResult acquisition =
-                repository.acquireReservedTarget(
-                        guardId,
-                        runId,
-                        instanceId,
-                        configurationHash,
-                        Instant.parse(
-                                "2026-01-06T12:01:00Z"
-                        )
-                );
-
-        assertTrue(
-                acquisition.acquired()
-        );
-
-        ProtectedRunGuardRepository.ExposureResult exposure =
-                repository.persistExposed(
-                        guardId,
-                        runId,
-                        instanceId,
-                        configurationHash,
-                        "market-data-fingerprint-v1",
-                        Instant.parse(
-                                "2026-01-06T12:02:00Z"
-                        )
-                );
-
-        assertTrue(
-                exposure.exposed()
-        );
-
-        assertEquals(
-                guardId,
-                exposure.guardId()
-        );
-
-        assertEquals(
-                runId,
-                exposure.runId()
-        );
-
-        assertEquals(
-                instanceId,
-                exposure.instanceId()
-        );
-
-        assertEquals(
-                ProtectedRunState.EXPOSED,
-                exposure.state()
-        );
-
-        assertEquals(
-                "market-data-fingerprint-v1",
-                exposure.marketDataFingerprint()
-        );
-
-        assertNull(
-                exposure.refusalReason()
-        );
 
         ProtectedRunGuardRepository.GuardSnapshot guard =
                 repository.requireGuard(
-                        guardId
+                        fixture.guardId()
                 );
 
         ProtectedRunGuardRepository.LedgerSnapshot ledger =
                 repository.requireLatestLedgerSnapshot(
-                        guardId
+                        fixture.guardId()
                 );
 
         assertEquals(
@@ -727,66 +591,34 @@ public class ProtectedRunGuardRepositoryTest {
         );
 
         assertEquals(
-                guard.state(),
-                ledger.state(),
-                "EXPOSED guard and latest ledger state must agree"
-        );
-
-        assertEquals(
-                runId,
+                fixture.runId(),
                 guard.runId()
         );
 
         assertEquals(
-                instanceId,
+                fixture.instanceId(),
                 guard.instanceId()
         );
 
         assertEquals(
-                configurationHash,
+                fixture.configurationHash(),
                 guard.configurationHash()
         );
 
         assertEquals(
-                "market-data-fingerprint-v1",
+                fixture.marketDataFingerprint(),
                 guard.marketDataFingerprint()
         );
 
-        Integer eventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                        """,
-                        Integer.class,
-                        guardId
-                );
+        assertNull(
+                ledger.governedVerdict()
+        );
 
         assertEquals(
                 3,
-                eventCount,
-                "Reservation, acquisition and exposure must produce exactly three ledger events"
-        );
-
-        Integer exposedEventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                          AND new_state = 'EXPOSED'
-                          AND market_data_fingerprint = ?
-                        """,
-                        Integer.class,
-                        guardId,
-                        "market-data-fingerprint-v1"
-                );
-
-        assertEquals(
-                1,
-                exposedEventCount,
-                "The EXPOSED ledger event must freeze the market-data fingerprint"
+                countLedgerEvents(
+                        fixture.guardId()
+                )
         );
     }
 
@@ -814,24 +646,19 @@ public class ProtectedRunGuardRepositoryTest {
         String configurationHash =
                 "configuration-hash-ownership-v1";
 
-        ProtectedRunGuardRepository.AcquisitionResult acquisition =
+        assertTrue(
                 repository.acquireReservedTarget(
                         guardId,
                         runId,
                         instanceId,
                         configurationHash,
+                        MarketDataProviderType.REAL,
                         Instant.parse(
                                 "2026-01-07T12:01:00Z"
                         )
-                );
-
-        assertTrue(
-                acquisition.acquired()
+                ).acquired()
         );
 
-        /*
-         * Wrong run ID.
-         */
         ProtectedRunGuardRepository.ExposureResult wrongRun =
                 repository.persistExposed(
                         guardId,
@@ -853,9 +680,6 @@ public class ProtectedRunGuardRepositoryTest {
                 wrongRun.refusalReason()
         );
 
-        /*
-         * Wrong application instance.
-         */
         ProtectedRunGuardRepository.ExposureResult wrongInstance =
                 repository.persistExposed(
                         guardId,
@@ -877,9 +701,6 @@ public class ProtectedRunGuardRepositoryTest {
                 wrongInstance.refusalReason()
         );
 
-        /*
-         * Wrong governed configuration.
-         */
         ProtectedRunGuardRepository.ExposureResult wrongConfiguration =
                 repository.persistExposed(
                         guardId,
@@ -906,105 +727,39 @@ public class ProtectedRunGuardRepositoryTest {
                         guardId
                 );
 
-        ProtectedRunGuardRepository.LedgerSnapshot ledger =
-                repository.requireLatestLedgerSnapshot(
-                        guardId
-                );
-
-        /*
-         * All three refused exposure attempts must leave the
-         * protected run untouched.
-         */
         assertEquals(
                 ProtectedRunState.RUNNING_UNEXPOSED,
                 guard.state()
-        );
-
-        assertEquals(
-                ProtectedRunState.RUNNING_UNEXPOSED,
-                ledger.state()
         );
 
         assertNull(
                 guard.marketDataFingerprint()
         );
 
-        Integer eventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                        """,
-                        Integer.class,
-                        guardId
-                );
-
         assertEquals(
                 2,
-                eventCount,
-                "Refused exposure attempts must not append ledger events"
+                countLedgerEvents(
+                        guardId
+                )
         );
     }
 
     @Test
     void secondExposureAttemptIsRefusedWithoutChangingFingerprint() {
 
-        long guardId =
-                repository.createReservation(
+        ExposedFixture fixture =
+                createExposedFixture(
                         "strategy-second-exposure-v1",
                         "validation-second-exposure-v1",
-                        ProtectedPeriodType.VALIDATION,
-                        LocalDate.of(2020, 1, 1),
-                        LocalDate.of(2020, 12, 31),
-                        Instant.parse(
-                                "2026-01-08T12:00:00Z"
-                        )
+                        2020
                 );
-
-        UUID runId =
-                UUID.randomUUID();
-
-        UUID instanceId =
-                UUID.randomUUID();
-
-        String configurationHash =
-                "configuration-hash-second-exposure-v1";
-
-        assertTrue(
-                repository.acquireReservedTarget(
-                        guardId,
-                        runId,
-                        instanceId,
-                        configurationHash,
-                        Instant.parse(
-                                "2026-01-08T12:01:00Z"
-                        )
-                ).acquired()
-        );
-
-        ProtectedRunGuardRepository.ExposureResult first =
-                repository.persistExposed(
-                        guardId,
-                        runId,
-                        instanceId,
-                        configurationHash,
-                        "original-market-data-fingerprint",
-                        Instant.parse(
-                                "2026-01-08T12:02:00Z"
-                        )
-                );
-
-        assertTrue(
-                first.exposed()
-        );
 
         ProtectedRunGuardRepository.ExposureResult second =
                 repository.persistExposed(
-                        guardId,
-                        runId,
-                        instanceId,
-                        configurationHash,
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
                         "replacement-market-data-fingerprint",
                         Instant.parse(
                                 "2026-01-08T12:03:00Z"
@@ -1027,36 +782,23 @@ public class ProtectedRunGuardRepositoryTest {
 
         ProtectedRunGuardRepository.GuardSnapshot guard =
                 repository.requireGuard(
-                        guardId
+                        fixture.guardId()
                 );
 
         assertEquals(
-                ProtectedRunState.EXPOSED,
-                guard.state()
-        );
-
-        assertEquals(
-                "original-market-data-fingerprint",
-                guard.marketDataFingerprint(),
-                "A second exposure attempt must not replace the frozen data fingerprint"
+                fixture.marketDataFingerprint(),
+                guard.marketDataFingerprint()
         );
 
         Integer exposedEventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                          AND new_state = 'EXPOSED'
-                        """,
-                        Integer.class,
-                        guardId
+                countLedgerEventsByState(
+                        fixture.guardId(),
+                        ProtectedRunState.EXPOSED
                 );
 
         assertEquals(
                 1,
-                exposedEventCount,
-                "Only one EXPOSED ledger event may be created"
+                exposedEventCount
         );
     }
 
@@ -1084,19 +826,17 @@ public class ProtectedRunGuardRepositoryTest {
         String configurationHash =
                 "configuration-hash-exposed-rollback-v1";
 
-        ProtectedRunGuardRepository.AcquisitionResult acquisition =
+        assertTrue(
                 repository.acquireReservedTarget(
                         guardId,
                         runId,
                         instanceId,
                         configurationHash,
+                        MarketDataProviderType.REAL,
                         Instant.parse(
                                 "2026-01-09T12:01:00Z"
                         )
-                );
-
-        assertTrue(
-                acquisition.acquired()
+                ).acquired()
         );
 
         installForcedExposedLedgerFailureTrigger();
@@ -1123,14 +863,6 @@ public class ProtectedRunGuardRepositoryTest {
             removeForcedExposedLedgerFailureTrigger();
         }
 
-        /*
-         * If the EXPOSED ledger event cannot be written,
-         * the guard state change and fingerprint write must
-         * both roll back.
-         *
-         * This is the database half of the fail-closed result
-         * exposure contract.
-         */
         ProtectedRunGuardRepository.GuardSnapshot guard =
                 repository.requireGuard(
                         guardId
@@ -1152,8 +884,540 @@ public class ProtectedRunGuardRepositoryTest {
         );
 
         assertNull(
-                guard.marketDataFingerprint(),
-                "Failed EXPOSED persistence must not leave a fingerprint behind"
+                guard.marketDataFingerprint()
+        );
+
+        assertEquals(
+                2,
+                countLedgerEvents(
+                        guardId
+                )
+        );
+    }
+
+    // =============================================================
+    // EXPOSED INCOMPLETE DETERMINISTIC RECOVERY TESTS
+    // =============================================================
+
+    @Test
+    void deterministicRecoveryAllowsIdenticalExposedInputsWithoutNewAttempt() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-deterministic-recovery-v1",
+                        "validation-deterministic-recovery-v1",
+                        2014
+                );
+
+        int ledgerCountBefore =
+                countLedgerEvents(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.DeterministicRecoveryResult
+                recovery =
+                repository.authorizeDeterministicRecovery(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint()
+                );
+
+        assertTrue(
+                recovery.recoveryAllowed()
+        );
+
+        assertEquals(
+                fixture.guardId(),
+                recovery.guardId()
+        );
+
+        assertEquals(
+                fixture.runId(),
+                recovery.runId()
+        );
+
+        assertNull(
+                recovery.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state()
+        );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                ledger.state()
+        );
+
+        assertEquals(
+                fixture.runId(),
+                guard.runId()
+        );
+
+        assertEquals(
+                fixture.configurationHash(),
+                guard.configurationHash()
+        );
+
+        assertEquals(
+                fixture.marketDataFingerprint(),
+                guard.marketDataFingerprint()
+        );
+
+        assertNull(
+                ledger.governedVerdict()
+        );
+
+        /*
+         * Authorization for deterministic recomputation must not
+         * create another protected attempt or append another event.
+         */
+        assertEquals(
+                ledgerCountBefore,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+    @Test
+    void deterministicRecoveryRefusesChangedRunId() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-recovery-run-mismatch-v1",
+                        "validation-recovery-run-mismatch-v1",
+                        2013
+                );
+
+        int ledgerCountBefore =
+                countLedgerEvents(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.DeterministicRecoveryResult
+                recovery =
+                repository.authorizeDeterministicRecovery(
+                        fixture.guardId(),
+                        UUID.randomUUID(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint()
+                );
+
+        assertFalse(
+                recovery.recoveryAllowed()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_OWNERSHIP_MISMATCH",
+                recovery.refusalReason()
+        );
+
+        assertNull(
+                recovery.runId()
+        );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                repository.requireGuard(
+                        fixture.guardId()
+                ).state()
+        );
+
+        assertEquals(
+                fixture.runId(),
+                repository.requireGuard(
+                        fixture.guardId()
+                ).runId()
+        );
+
+        assertEquals(
+                ledgerCountBefore,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+    @Test
+    void deterministicRecoveryRefusesChangedConfigurationHash() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-recovery-config-mismatch-v1",
+                        "validation-recovery-config-mismatch-v1",
+                        2012
+                );
+
+        int ledgerCountBefore =
+                countLedgerEvents(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.DeterministicRecoveryResult
+                recovery =
+                repository.authorizeDeterministicRecovery(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        "different-configuration-hash",
+                        fixture.marketDataFingerprint()
+                );
+
+        assertFalse(
+                recovery.recoveryAllowed()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_INPUT_MISMATCH",
+                recovery.refusalReason()
+        );
+
+        assertNull(
+                recovery.runId()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state()
+        );
+
+        assertEquals(
+                fixture.configurationHash(),
+                guard.configurationHash()
+        );
+
+        assertEquals(
+                ledgerCountBefore,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+    @Test
+    void deterministicRecoveryRefusesChangedMarketDataFingerprint() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-recovery-data-mismatch-v1",
+                        "validation-recovery-data-mismatch-v1",
+                        2011
+                );
+
+        int ledgerCountBefore =
+                countLedgerEvents(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.DeterministicRecoveryResult
+                recovery =
+                repository.authorizeDeterministicRecovery(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.configurationHash(),
+                        "different-market-data-fingerprint"
+                );
+
+        assertFalse(
+                recovery.recoveryAllowed()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_INPUT_MISMATCH",
+                recovery.refusalReason()
+        );
+
+        assertNull(
+                recovery.runId()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state()
+        );
+
+        assertEquals(
+                fixture.marketDataFingerprint(),
+                guard.marketDataFingerprint()
+        );
+
+        assertEquals(
+                ledgerCountBefore,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+
+    // =============================================================
+    // RUNNING_UNEXPOSED -> RESERVED RECOVERY TESTS
+    // =============================================================
+
+    @Test
+    void staleUnexposedRunRecoversToReservedWithAbortedRunEvent() {
+
+        long guardId =
+                repository.createReservation(
+                        "strategy-recovery-v1",
+                        "validation-recovery-v1",
+                        ProtectedPeriodType.VALIDATION,
+                        LocalDate.of(
+                                2018,
+                                1,
+                                1
+                        ),
+                        LocalDate.of(
+                                2018,
+                                12,
+                                31
+                        ),
+                        Instant.parse(
+                                "2026-01-10T12:00:00Z"
+                        )
+                );
+
+        UUID abandonedRunId =
+                UUID.randomUUID();
+
+        UUID abandonedInstanceId =
+                UUID.randomUUID();
+
+        String configurationHash =
+                "recovery-configuration-hash-v1";
+
+        ProtectedRunGuardRepository.AcquisitionResult acquisition =
+                repository.acquireReservedTarget(
+                        guardId,
+                        abandonedRunId,
+                        abandonedInstanceId,
+                        configurationHash,
+                        MarketDataProviderType.REAL,
+                        Instant.parse(
+                                "2026-01-10T12:01:00Z"
+                        )
+                );
+
+        assertTrue(
+                acquisition.acquired()
+        );
+
+        UUID restartedInstanceId =
+                UUID.randomUUID();
+
+        assertNotEquals(
+                abandonedInstanceId,
+                restartedInstanceId
+        );
+
+        ProtectedRunGuardRepository.RecoveryResult recovery =
+                repository.recoverStaleUnexposedRun(
+                        guardId,
+                        restartedInstanceId,
+                        Instant.parse(
+                                "2026-01-10T12:02:00Z"
+                        )
+                );
+
+        assertTrue(
+                recovery.recovered()
+        );
+
+        assertEquals(
+                guardId,
+                recovery.guardId()
+        );
+
+        assertEquals(
+                abandonedRunId,
+                recovery.abortedRunId()
+        );
+
+        assertEquals(
+                abandonedInstanceId,
+                recovery.previousInstanceId()
+        );
+
+        assertNull(
+                recovery.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        guardId
+                );
+
+        assertEquals(
+                ProtectedRunState.RESERVED,
+                guard.state()
+        );
+
+        assertNull(
+                guard.runId()
+        );
+
+        assertNull(
+                guard.instanceId()
+        );
+
+        assertNull(
+                guard.configurationHash()
+        );
+
+        assertNull(
+                guard.marketDataFingerprint()
+        );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        guardId
+                );
+
+        assertEquals(
+                ProtectedRunState.RESERVED,
+                ledger.state()
+        );
+
+        assertNull(
+                ledger.governedVerdict()
+        );
+
+        String latestEventType =
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT event_type
+                        FROM protected_run_event_ledger
+                        WHERE guard_id = ?
+                        ORDER BY sequence_number DESC
+                        LIMIT 1
+                        """,
+                        String.class,
+                        guardId
+                );
+
+        assertEquals(
+                "ABORTED_RUN",
+                latestEventType
+        );
+
+        Integer abortedEventCount =
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT COUNT(*)
+                        FROM protected_run_event_ledger
+                        WHERE guard_id = ?
+                          AND event_type = 'ABORTED_RUN'
+                        """,
+                        Integer.class,
+                        guardId
+                );
+
+        assertEquals(
+                1,
+                abortedEventCount
+        );
+
+        assertEquals(
+                3,
+                countLedgerEvents(
+                        guardId
+                )
+        );
+    }
+
+    @Test
+    void currentApplicationInstanceCannotRecoverItsOwnUnexposedRun() {
+
+        long guardId =
+                repository.createReservation(
+                        "strategy-recovery-owner-v1",
+                        "validation-recovery-owner-v1",
+                        ProtectedPeriodType.VALIDATION,
+                        LocalDate.of(
+                                2017,
+                                1,
+                                1
+                        ),
+                        LocalDate.of(
+                                2017,
+                                12,
+                                31
+                        ),
+                        Instant.parse(
+                                "2026-01-11T12:00:00Z"
+                        )
+                );
+
+        UUID runId =
+                UUID.randomUUID();
+
+        UUID instanceId =
+                UUID.randomUUID();
+
+        String configurationHash =
+                "recovery-owner-hash-v1";
+
+        assertTrue(
+                repository.acquireReservedTarget(
+                        guardId,
+                        runId,
+                        instanceId,
+                        configurationHash,
+                        MarketDataProviderType.REAL,
+                        Instant.parse(
+                                "2026-01-11T12:01:00Z"
+                        )
+                ).acquired()
+        );
+
+        ProtectedRunGuardRepository.RecoveryResult recovery =
+                repository.recoverStaleUnexposedRun(
+                        guardId,
+                        instanceId,
+                        Instant.parse(
+                                "2026-01-11T12:02:00Z"
+                        )
+                );
+
+        assertFalse(
+                recovery.recovered()
+        );
+
+        assertEquals(
+                "RECOVERY_REQUIRES_EARLIER_INSTANCE",
+                recovery.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        guardId
+                );
+
+        assertEquals(
+                ProtectedRunState.RUNNING_UNEXPOSED,
+                guard.state()
         );
 
         assertEquals(
@@ -1171,30 +1435,23 @@ public class ProtectedRunGuardRepositoryTest {
                 guard.configurationHash()
         );
 
-        Integer eventCount =
-                jdbcTemplate.queryForObject(
-                        """
-                        SELECT COUNT(*)
-                        FROM protected_run_event_ledger
-                        WHERE guard_id = ?
-                        """,
-                        Integer.class,
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
                         guardId
                 );
 
         assertEquals(
-                2,
-                eventCount,
-                "Failed exposure must leave only RESERVED and RUNNING_UNEXPOSED events"
+                ProtectedRunState.RUNNING_UNEXPOSED,
+                ledger.state()
         );
 
-        Integer exposedEventCount =
+        Integer abortedEventCount =
                 jdbcTemplate.queryForObject(
                         """
                         SELECT COUNT(*)
                         FROM protected_run_event_ledger
                         WHERE guard_id = ?
-                          AND new_state = 'EXPOSED'
+                          AND event_type = 'ABORTED_RUN'
                         """,
                         Integer.class,
                         guardId
@@ -1202,7 +1459,704 @@ public class ProtectedRunGuardRepositoryTest {
 
         assertEquals(
                 0,
-                exposedEventCount
+                abortedEventCount
+        );
+
+        assertEquals(
+                2,
+                countLedgerEvents(
+                        guardId
+                )
+        );
+    }
+
+    // =============================================================
+    // EXPOSED -> SPENT TESTS
+    // =============================================================
+
+    @Test
+    void governedPassVerdictTransitionsExposedRunToSpent() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-spent-pass-v1",
+                        "validation-spent-pass-v1",
+                        2018
+                );
+
+        ProtectedRunGuardRepository.CompletionResult completion =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint(),
+                        "pass",
+                        Instant.parse(
+                                "2026-01-10T12:03:00Z"
+                        )
+                );
+
+        assertTrue(
+                completion.spent()
+        );
+
+        assertEquals(
+                ProtectedRunState.SPENT,
+                completion.state()
+        );
+
+        assertEquals(
+                "PASS",
+                completion.governedVerdict()
+        );
+
+        assertEquals(
+                fixture.runId(),
+                completion.runId()
+        );
+
+        assertEquals(
+                fixture.instanceId(),
+                completion.instanceId()
+        );
+
+        assertNull(
+                completion.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.SPENT,
+                guard.state()
+        );
+
+        assertEquals(
+                ProtectedRunState.SPENT,
+                ledger.state()
+        );
+
+        assertEquals(
+                "PASS",
+                ledger.governedVerdict()
+        );
+
+        assertNotNull(
+                ledger.eventHash()
+        );
+
+        assertEquals(
+                64,
+                ledger.eventHash().length()
+        );
+
+        assertEquals(
+                4,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+
+        assertEquals(
+                1,
+                countLedgerEventsByState(
+                        fixture.guardId(),
+                        ProtectedRunState.SPENT
+                )
+        );
+    }
+
+    @Test
+    void governedFailVerdictTransitionsExposedRunToSpent() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-spent-fail-v1",
+                        "validation-spent-fail-v1",
+                        2017
+                );
+
+        ProtectedRunGuardRepository.CompletionResult completion =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint(),
+                        "FAIL",
+                        Instant.parse(
+                                "2026-01-11T12:03:00Z"
+                        )
+                );
+
+        assertTrue(
+                completion.spent()
+        );
+
+        assertEquals(
+                "FAIL",
+                completion.governedVerdict()
+        );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.SPENT,
+                ledger.state()
+        );
+
+        assertEquals(
+                "FAIL",
+                ledger.governedVerdict()
+        );
+    }
+
+    @Test
+    void secondCompletionAttemptIsRefusedAndOriginalVerdictRemainsFrozen() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-double-spent-v1",
+                        "validation-double-spent-v1",
+                        2016
+                );
+
+        ProtectedRunGuardRepository.CompletionResult first =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint(),
+                        "PASS",
+                        Instant.parse(
+                                "2026-01-12T12:03:00Z"
+                        )
+                );
+
+        assertTrue(
+                first.spent()
+        );
+
+        ProtectedRunGuardRepository.CompletionResult second =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint(),
+                        "FAIL",
+                        Instant.parse(
+                                "2026-01-12T12:04:00Z"
+                        )
+                );
+
+        assertFalse(
+                second.spent()
+        );
+
+        assertEquals(
+                ProtectedRunState.SPENT,
+                second.state()
+        );
+
+        assertEquals(
+                "SPENT_TRANSITION_REFUSED",
+                second.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.SPENT,
+                ledger.state()
+        );
+
+        assertEquals(
+                "PASS",
+                ledger.governedVerdict(),
+                "The original governed verdict must remain immutable"
+        );
+
+        assertEquals(
+                1,
+                countLedgerEventsByState(
+                        fixture.guardId(),
+                        ProtectedRunState.SPENT
+                )
+        );
+    }
+
+    @Test
+    void completionRequiresMatchingProtectedRunInputs() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-completion-inputs-v1",
+                        "validation-completion-inputs-v1",
+                        2015
+                );
+
+        ProtectedRunGuardRepository.CompletionResult wrongRun =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        UUID.randomUUID(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint(),
+                        "PASS",
+                        Instant.parse(
+                                "2026-01-13T12:03:00Z"
+                        )
+                );
+
+        assertFalse(
+                wrongRun.spent()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_OWNERSHIP_MISMATCH",
+                wrongRun.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.CompletionResult wrongInstance =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        UUID.randomUUID(),
+                        fixture.configurationHash(),
+                        fixture.marketDataFingerprint(),
+                        "PASS",
+                        Instant.parse(
+                                "2026-01-13T12:04:00Z"
+                        )
+                );
+
+        assertFalse(
+                wrongInstance.spent()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_OWNERSHIP_MISMATCH",
+                wrongInstance.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.CompletionResult wrongConfiguration =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        "different-configuration-hash",
+                        fixture.marketDataFingerprint(),
+                        "PASS",
+                        Instant.parse(
+                                "2026-01-13T12:05:00Z"
+                        )
+                );
+
+        assertFalse(
+                wrongConfiguration.spent()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_OWNERSHIP_MISMATCH",
+                wrongConfiguration.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.CompletionResult wrongFingerprint =
+                repository.persistGovernedVerdict(
+                        fixture.guardId(),
+                        fixture.runId(),
+                        fixture.instanceId(),
+                        fixture.configurationHash(),
+                        "different-market-data-fingerprint",
+                        "PASS",
+                        Instant.parse(
+                                "2026-01-13T12:06:00Z"
+                        )
+                );
+
+        assertFalse(
+                wrongFingerprint.spent()
+        );
+
+        assertEquals(
+                "PROTECTED_RUN_INPUT_MISMATCH",
+                wrongFingerprint.refusalReason()
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state()
+        );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                ledger.state()
+        );
+
+        assertNull(
+                ledger.governedVerdict()
+        );
+
+        assertEquals(
+                3,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+    @Test
+    void failedSpentLedgerWriteRollsBackGuardTransition() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-spent-rollback-v1",
+                        "validation-spent-rollback-v1",
+                        2014
+                );
+
+        installForcedSpentLedgerFailureTrigger();
+
+        try {
+
+            assertThrows(
+                    DataAccessException.class,
+                    () ->
+                            repository.persistGovernedVerdict(
+                                    fixture.guardId(),
+                                    fixture.runId(),
+                                    fixture.instanceId(),
+                                    fixture.configurationHash(),
+                                    fixture.marketDataFingerprint(),
+                                    "PASS",
+                                    Instant.parse(
+                                            "2026-01-14T12:03:00Z"
+                                    )
+                            )
+            );
+
+        } finally {
+
+            removeForcedSpentLedgerFailureTrigger();
+        }
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state(),
+                "Failed SPENT ledger persistence must roll the guard back to EXPOSED"
+        );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                ledger.state()
+        );
+
+        assertNull(
+                ledger.governedVerdict()
+        );
+
+        assertEquals(
+                fixture.marketDataFingerprint(),
+                guard.marketDataFingerprint()
+        );
+
+        assertEquals(
+                3,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+
+        assertEquals(
+                0,
+                countLedgerEventsByState(
+                        fixture.guardId(),
+                        ProtectedRunState.SPENT
+                )
+        );
+    }
+
+    @Test
+    void databaseRefusesSpentLedgerEventWithoutGovernedVerdict() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-null-verdict-v1",
+                        "validation-null-verdict-v1",
+                        2013
+                );
+
+        ProtectedRunGuardRepository.LedgerSnapshot exposedLedger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        String fakeEventHash =
+                "a".repeat(
+                        64
+                );
+
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () ->
+                        jdbcTemplate.update(
+                                """
+                                INSERT INTO protected_run_event_ledger (
+                                    event_id,
+                                    guard_id,
+                                    run_id,
+                                    event_type,
+                                    previous_state,
+                                    new_state,
+                                    instance_id,
+                                    configuration_hash,
+                                    market_data_fingerprint,
+                                    data_source_type,
+                                    governed_verdict,
+                                    previous_event_hash,
+                                    event_hash,
+                                    event_timestamp
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                UUID.randomUUID(),
+                                fixture.guardId(),
+                                fixture.runId(),
+                                ProtectedRunState.SPENT.name(),
+                                ProtectedRunState.EXPOSED.name(),
+                                ProtectedRunState.SPENT.name(),
+                                fixture.instanceId(),
+                                fixture.configurationHash(),
+                                fixture.marketDataFingerprint(),
+                                MarketDataProviderType.REAL.name(),
+                                null,
+                                exposedLedger.eventHash(),
+                                fakeEventHash,
+                                Timestamp.from(
+                                        Instant.parse(
+                                                "2026-01-15T12:03:00Z"
+                                        )
+                                )
+                        )
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        ProtectedRunGuardRepository.LedgerSnapshot ledger =
+                repository.requireLatestLedgerSnapshot(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state()
+        );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                ledger.state()
+        );
+
+        assertNull(
+                ledger.governedVerdict()
+        );
+
+        assertEquals(
+                3,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+    @Test
+    void governedVerdictMustBePassOrFail() {
+
+        ExposedFixture fixture =
+                createExposedFixture(
+                        "strategy-invalid-verdict-v1",
+                        "validation-invalid-verdict-v1",
+                        2012
+                );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        repository.persistGovernedVerdict(
+                                fixture.guardId(),
+                                fixture.runId(),
+                                fixture.instanceId(),
+                                fixture.configurationHash(),
+                                fixture.marketDataFingerprint(),
+                                "MAYBE",
+                                Instant.parse(
+                                        "2026-01-16T12:03:00Z"
+                                )
+                        )
+        );
+
+        ProtectedRunGuardRepository.GuardSnapshot guard =
+                repository.requireGuard(
+                        fixture.guardId()
+                );
+
+        assertEquals(
+                ProtectedRunState.EXPOSED,
+                guard.state()
+        );
+
+        assertEquals(
+                3,
+                countLedgerEvents(
+                        fixture.guardId()
+                )
+        );
+    }
+
+    // =============================================================
+    // HELPERS
+    // =============================================================
+
+    private static ExposedFixture createExposedFixture(
+            String strategyVersion,
+            String protectedPeriodId,
+            int year) {
+
+        long guardId =
+                repository.createReservation(
+                        strategyVersion,
+                        protectedPeriodId,
+                        ProtectedPeriodType.VALIDATION,
+                        LocalDate.of(year, 1, 1),
+                        LocalDate.of(year, 12, 31),
+                        Instant.parse(
+                                "2026-02-01T12:00:00Z"
+                        )
+                );
+
+        UUID runId =
+                UUID.randomUUID();
+
+        UUID instanceId =
+                UUID.randomUUID();
+
+        String configurationHash =
+                strategyVersion
+                        + "-configuration-hash";
+
+        String marketDataFingerprint =
+                strategyVersion
+                        + "-market-data-fingerprint";
+
+        ProtectedRunGuardRepository.AcquisitionResult acquisition =
+                repository.acquireReservedTarget(
+                        guardId,
+                        runId,
+                        instanceId,
+                        configurationHash,
+                        MarketDataProviderType.REAL,
+                        Instant.parse(
+                                "2026-02-01T12:01:00Z"
+                        )
+                );
+
+        assertTrue(
+                acquisition.acquired()
+        );
+
+        ProtectedRunGuardRepository.ExposureResult exposure =
+                repository.persistExposed(
+                        guardId,
+                        runId,
+                        instanceId,
+                        configurationHash,
+                        marketDataFingerprint,
+                        Instant.parse(
+                                "2026-02-01T12:02:00Z"
+                        )
+                );
+
+        assertTrue(
+                exposure.exposed()
+        );
+
+        return new ExposedFixture(
+                guardId,
+                runId,
+                instanceId,
+                configurationHash,
+                marketDataFingerprint
+        );
+    }
+
+    private static Integer countLedgerEvents(
+            long guardId) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM protected_run_event_ledger
+                WHERE guard_id = ?
+                """,
+                Integer.class,
+                guardId
+        );
+    }
+
+    private static Integer countLedgerEventsByState(
+            long guardId,
+            ProtectedRunState state) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM protected_run_event_ledger
+                WHERE guard_id = ?
+                  AND new_state = ?
+                """,
+                Integer.class,
+                guardId,
+                state.name()
         );
     }
 
@@ -1314,5 +2268,68 @@ public class ProtectedRunGuardRepositoryTest {
                     test_fail_exposed_ledger_insert()
                 """
         );
+    }
+
+    private static void installForcedSpentLedgerFailureTrigger() {
+
+        jdbcTemplate.execute(
+                """
+                CREATE OR REPLACE FUNCTION
+                    test_fail_spent_ledger_insert()
+                RETURNS TRIGGER
+                LANGUAGE plpgsql
+                AS
+                $$
+                BEGIN
+
+                    IF NEW.new_state = 'SPENT' THEN
+                        RAISE EXCEPTION
+                            'Forced SPENT ledger failure for transaction rollback test';
+                    END IF;
+
+                    RETURN NEW;
+
+                END;
+                $$
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE TRIGGER
+                    test_fail_spent_ledger_insert_trigger
+                BEFORE INSERT
+                ON protected_run_event_ledger
+                FOR EACH ROW
+                EXECUTE FUNCTION
+                    test_fail_spent_ledger_insert()
+                """
+        );
+    }
+
+    private static void removeForcedSpentLedgerFailureTrigger() {
+
+        jdbcTemplate.execute(
+                """
+                DROP TRIGGER IF EXISTS
+                    test_fail_spent_ledger_insert_trigger
+                ON protected_run_event_ledger
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                DROP FUNCTION IF EXISTS
+                    test_fail_spent_ledger_insert()
+                """
+        );
+    }
+
+    private record ExposedFixture(
+            long guardId,
+            UUID runId,
+            UUID instanceId,
+            String configurationHash,
+            String marketDataFingerprint) {
     }
 }

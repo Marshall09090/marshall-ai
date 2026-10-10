@@ -12,7 +12,7 @@ Feature: Protected run exposure state machine
     And only in-memory governance storage is active
     When the protected run is requested
     Then the protected run should be refused
-    And the refusal reason should be "DURABLE_STORE_REQUIRED"
+    And the exposure refusal reason should be "DURABLE_STORE_REQUIRED"
 
   Scenario: Every application start receives a fresh instance ID
     Given an application instance has started
@@ -24,7 +24,7 @@ Feature: Protected run exposure state machine
     Given one application instance holds the governed-mode advisory lock
     When another application instance requests governed mode
     Then the second instance should be refused
-    And the refusal reason should be "GOVERNED_INSTANCE_ALREADY_ACTIVE"
+    And the exposure refusal reason should be "GOVERNED_INSTANCE_ALREADY_ACTIVE"
 
   Scenario: A reserved protected target can be acquired atomically
     Given a protected target is in state "RESERVED"
@@ -72,7 +72,7 @@ Feature: Protected run exposure state machine
     And the latest ledger state is "EXPOSED"
     When a protected run is requested
     Then the protected run should be refused
-    And the refusal reason should be "GOVERNANCE_INTEGRITY_MISMATCH"
+    And the exposure refusal reason should be "GOVERNANCE_INTEGRITY_MISMATCH"
     And protected market data should not be read
 
   Scenario: EXPOSED must be durable before results become visible
